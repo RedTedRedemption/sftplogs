@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+
 import sys, re
 if len(sys.argv) < 2:
     targetfile = input("enter file to analyze: ")
@@ -48,7 +49,7 @@ class Session:
 try:
     logfile = open(targetfile, "r")
     logfile = logfile.read()
-except:
+except IOError:
     print("error loading file")
     exit()
 
@@ -98,51 +99,59 @@ for user in users:
                 user.sessions.append(session)
 
 while True:
-    count = 0
-    print()
-    print("---------------------------")
-    print("Select a user:")
-    for user in users:
-        print(str(count) + ". " + user.username, "-", len(user.sessions), 'sessions')
-        count = count + 1
-    while True:
-        menusel = input("> ")
-        if "exit" in menusel.lower():
-            exit()
-        if not isaNumber(menusel):
-            print(menusel + " is not a number")
-        elif int(menusel) >= len(users):
-            print(menusel + " is not in range")
-        else:
-            user = users[int(menusel)]
-            break
-    print("please select a session for " + user.username + " or 'back' to go back")
-    
-    while True:
+    try:
         count = 0
-        for session in user.sessions:
-            print(str(count) + ". " + str(session.id) + " at " + str(session.entrys[0].timestamp) + " with " + str(len(session.entrys)) + " entrys from", session.address)
+        print()
+        print("---------------------------")
+        print("Select a user:")
+        for user in users:
+            print(str(count) + ". " + user.username, "-", len(user.sessions), 'sessions')
             count = count + 1
-        print ("select a session by number or enter 'back' to return to the previous menu")
-        menusel = input("> ").lower()
-        if "back" in menusel:
-            break
-        if "exit" in menusel:
-            exit()
-        if not isaNumber(menusel):
-            print(menusel + " is not a number")
-        elif int(menusel) >= len(user.sessions):
-            print(menusel + " is not in range")
-        else:
-            session = user.sessions[int(menusel)]
-            print("-----------------------------------------")
-            entries = session.entrys[:]
-            entries.reverse()
-            for entry in entries:
-                print(entry.unparsed)
-            print("-----------------------------------------")
-            input("press enter to return to sessions for user " + user.username)
-            print("-----")
+        while True:
+            menusel = input("> ")
+            if "exit" in menusel.lower():
+                exit()
+            if not isaNumber(menusel):
+                print(menusel + " is not a number")
+            elif int(menusel) >= len(users):
+                print(menusel + " is not in range")
+            else:
+                user = users[int(menusel)]
+                break
+        print("please select a session for " + user.username + " or 'back' to go back")
+        
+        while True:
+            count = 0
+            for session in user.sessions:
+                if count < 10:
+                    print(str(count) + ".  " + str(session.id) + " at " + str(session.entrys[0].timestamp) + " with " + str(len(session.entrys)) + " entrys from", "[" + session.address + "]")
+                else:
+                    print(str(count) + ". " + str(session.id) + " at " + str(session.entrys[0].timestamp) + " with " + str(len(session.entrys)) + " entrys from", "[" + session.address + "]")
+                count = count + 1
+            print ("select a session by number or enter 'back' to return to the previous menu")
+            menusel = input("> ").lower()
+            if "back" in menusel:
+                break
+            if "exit" in menusel:
+                exit()
+            if not isaNumber(menusel):
+                print(menusel + " is not a number")
+            elif int(menusel) >= len(user.sessions):
+                print(menusel + " is not in range")
+            else:
+                session = user.sessions[int(menusel)]
+                print("-----------------------------------------")
+                entries = session.entrys[:]
+                entries.reverse()
+                for entry in entries:
+                    print(entry.unparsed)
+                print("-----------------------------------------")
+                input("press enter to return to sessions for user " + user.username)
+                print("-----")
+    except KeyboardInterrupt:
+        print()
+        print("exiting by keyboard interrupt")
+        exit()
 
            
         
