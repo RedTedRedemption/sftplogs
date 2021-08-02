@@ -1,6 +1,12 @@
 # sftplogs
 A simple python tool to analyze sftp logs
 
+#Generating files that the program can read
+running `journalctl -r > log.log` will generate a file that the program will read and then parse for valid sftp-server entries, but to save analysis time you might
+want to run `journalctl -r | grep "sftp-server\[" > log.log` instead.
+
+This program was written on fedora, so your log output format may be different. Please raise an issue if there is a different format for your system and I may address it.
+
 # Installation and usage
 Simply download the file and run it with python3. The necessary libraries should be built into Python 3 by default.
 
