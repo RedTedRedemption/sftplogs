@@ -139,7 +139,6 @@ def main(screen):
                 if session.entrys[0].username == user.username:
                     user.sessions.append(session)
 
-    screen.getkey()
     screen.nodelay(1)
     screen.clear()
     screen.refresh()
