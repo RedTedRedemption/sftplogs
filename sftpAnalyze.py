@@ -18,8 +18,6 @@ class Entry:
         self.timestamp = words[0] + " " + words[1] + " " + words[2]
         self.action = words[5:]
 
-entrys = []
-
 class User:
     def __init__(self, username):
         self.sessions = []
@@ -34,7 +32,7 @@ def concat(*args):
 users = []
 usernames = []
 sessions = []
-sessionnames = []
+entrys = []
 
 def isaNumber(string):
     try:
@@ -112,7 +110,7 @@ def main(screen):
             if entry.username != "notalogin":
                 usernames.append(entry.username)
                 users.append(User(entry.username))
-
+  
         if "session opened for" in entry.unparsed:
             tempsession = Session(entry.sessionID)
             tempsession.address = extractIP.search(entry.unparsed).group(1)
