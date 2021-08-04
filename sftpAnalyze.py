@@ -164,6 +164,7 @@ def main(screen):
             leftpanel.addstr(i, leftpanel.getmaxyx()[1] - 1, "|")
         lineindex = 1
         for user in users:
+            lineindex = lineindex + 1
             leftpanel.addstr(lineindex, 2, user.username)
         leftpanel.addstr(menuindex + 2, 1, ">")
         
@@ -193,9 +194,3 @@ def main(screen):
         
 
 wrapper(main)
-
-if __name__ == "__main__":
-    import doctest
-    doctest.testmod
-           
-        
