@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import sys, re, curses
+import sys, re, curses, datetime
 from curses import wrapper
 from curses.textpad import Textbox, rectangle
 
@@ -88,6 +88,19 @@ def main(screen):
         screen.addstr(1, 0, concat("processing log entries...", workingline, "/", len(logs), "     found", len(entrys), "sftp entries"))
         screen.refresh()
 
+    datesplitted = entrys[0].timestamp.split(" ")
+    timesplitted = datesplitted[2].split(":")
+    firstdate = datetime.datetime(datetime.datetime.today().year, datetime.datetime.strptime(datesplitted[0], '%b').month, int(datesplitted[1]), hour=int(timesplitted[0]), minute=int(timesplitted[1]), second=int(timesplitted[2]))
+
+    datesplitted = entrys[-1].timestamp.split(" ")
+    timesplitted = datesplitted[2].split(":")
+    lastdate = datetime.datetime(datetime.datetime.today().year, datetime.datetime.strptime(datesplitted[0], '%b').month, int(datesplitted[1]), hour=int(timesplitted[0]), minute=int(timesplitted[1]), second=int(timesplitted[2]))
+
+    #if firstdate.timestamp() > lastdate.timestamp():
+    #   entrys.reverse()
+    #TODO - why does this cause doubling ^ ?
+    
+
     workingline = 0
     screen.addstr("\nanalyzing valid entries")
     screen.refresh()
@@ -127,62 +140,62 @@ def main(screen):
                     user.sessions.append(session)
 
     screen.getkey()
+    screen.nodelay(1)
+    screen.clear()
+    screen.refresh()
+
+    leftpanel = curses.newwin(screen.getmaxyx()[0], int(screen.getmaxyx()[1] / 2), 0, 0)
+    rightpanel = curses.newwin(screen.getmaxyx()[0], int(screen.getmaxyx()[1] / 2), 0, int(screen.getmaxyx()[1] / 2))
+
+
+
+    menuindex = 0
+
+    
+
+    curses.curs_set(0)
+
+    curses.start_color()
 
     while True:
-        try:
-            count = 0
-            print()
-            print("---------------------------")
-            print("Select a user:")
-            for user in users:
-                print(str(count) + ". " + user.username, "-", len(user.sessions), 'sessions')
-                count = count + 1
-            while True:
-                menusel = input("> ")
-                if "exit" in menusel.lower():
-                    exit()
-                if not isaNumber(menusel):
-                    print(menusel + " is not a number")
-                elif int(menusel) >= len(users):
-                    print(menusel + " is not in range")
-                else:
-                    user = users[int(menusel)]
-                    break
-            print("please select a session for " + user.username + " or 'back' to go back")
-            
-            while True:
-                count = 0
-                for session in user.sessions:
-                    if count < 10:
-                        print(str(count) + ".  " + str(session.id) + " at " + str(session.entrys[0].timestamp) + " with " + str(len(session.entrys)) + " entrys from", "[" + session.address + "]")
-                    else:
-                        print(str(count) + ". " + str(session.id) + " at " + str(session.entrys[0].timestamp) + " with " + str(len(session.entrys)) + " entrys from", "[" + session.address + "]")
-                    count = count + 1
-                print ("select a session by number or enter 'back' to return to the previous menu")
-                menusel = input("> ").lower()
-                if "back" in menusel:
-                    break
-                if "exit" in menusel:
-                    exit()
-                if not isaNumber(menusel):
-                    print(menusel + " is not a number")
-                elif int(menusel) >= len(user.sessions):
-                    print(menusel + " is not in range")
-                else:
-                    session = user.sessions[int(menusel)]
-                    print("-----------------------------------------")
-                    entries = session.entrys[:]
-                    entries.reverse()
-                    for entry in entries:
-                        print(entry.unparsed)
-                    print("-----------------------------------------")
-                    input("press enter to return to sessions for user " + user.username)
-                    print("-----")
-        except KeyboardInterrupt:
-            print()
-            print("exiting by keyboard interrupt")
-            exit()
-    
+        leftpanel.addstr(0, 0, "Users:")
+        rightpanel.addstr(0, 0, concat("Sessions: ", "(" + str(len(users[menuindex].sessions)) + ")"))
+        for i in range(screen.getmaxyx()[0] - 1):
+            leftpanel.addstr(i, leftpanel.getmaxyx()[1] - 1, "|")
+        lineindex = 1
+        for user in users:
+            leftpanel.addstr(lineindex, 2, user.username)
+        leftpanel.addstr(menuindex + 2, 1, ">")
+        
+        lineindex = 1
+        for session in users[menuindex].sessions:
+            lineindex = lineindex + 1
+            try:
+                rightpanel.addstr(lineindex, 2, concat(session.entrys[0].timestamp, "from", "[" + session.address + "]"))
+            except curses.error:
+                pass        
+  
+        char = screen.getch()
+        if char == curses.KEY_UP:
+            if menuindex > 0:
+                menuindex = menuindex - 1
+                leftpanel.clear()
+                rightpanel.clear()
+        elif char == curses.KEY_DOWN:
+            if menuindex < len(users) - 1:
+                menuindex = menuindex + 1
+                leftpanel.clear()
+                rightpanel.clear()
+        
+
+        leftpanel.refresh()
+        rightpanel.refresh()
+        
+
 wrapper(main)
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod
            
         
