@@ -4,6 +4,10 @@ import sys, re, curses, datetime
 from curses import wrapper
 from curses.textpad import Textbox, rectangle
 
+USER_MODE = 0
+SESSION_MODE = 1
+ENTRY_MODE = 3
+
 extractIP = re.compile("from \[(.*?)]")
 
 class Entry:
@@ -22,7 +26,15 @@ class User:
     def __init__(self, username):
         self.sessions = []
         self.username = username
-    
+
+class Session:
+    def __init__(self, id):
+        self.id = id
+        self.entrys = []
+        self.address = ''
+        self.username = ''
+        self.user = '' #TEMPORARY ASSIGNMENT - var is changed later
+
 def concat(*args):
     tout = str(args[0])
     for arg in args[1:]:
@@ -41,11 +53,9 @@ def isaNumber(string):
         return False
     return True
 
-class Session:
-    def __init__(self, id):
-        self.id = id
-        self.entrys = []
-        self.address = ''
+
+
+
 def main(screen):
     screen.clear()
     if len(sys.argv) < 2:
@@ -97,7 +107,7 @@ def main(screen):
     #if firstdate.timestamp() > lastdate.timestamp():
     #   entrys.reverse()
     #TODO - why does this cause doubling ^ ?
-    
+
 
     workingline = 0
     screen.addstr("\nanalyzing valid entries")
@@ -114,6 +124,7 @@ def main(screen):
         if "session opened for" in entry.unparsed:
             tempsession = Session(entry.sessionID)
             tempsession.address = extractIP.search(entry.unparsed).group(1)
+            tempsession.username = entry.username
             sessions.append(tempsession)
             for user in users:
                 if user.username == entry.username:
@@ -134,7 +145,7 @@ def main(screen):
         screen.refresh()
         if user.username != "notalogin":
             for session in sessions:
-                if session.entrys[0].username == user.username:
+                if session.username == user.username:
                     user.sessions.append(session)
 
     screen.nodelay(1)
@@ -154,36 +165,91 @@ def main(screen):
 
     curses.start_color()
 
+    viewmode = USER_MODE
+
     while True:
-        leftpanel.addstr(0, 0, "Users:")
-        rightpanel.addstr(0, 0, concat("Sessions: ", "(" + str(len(users[menuindex].sessions)) + ")"))
-        for i in range(screen.getmaxyx()[0] - 1):
-            leftpanel.addstr(i, leftpanel.getmaxyx()[1] - 1, "|")
-        lineindex = 1
-        for user in users:
-            lineindex = lineindex + 1
-            leftpanel.addstr(lineindex, 2, user.username)
-        leftpanel.addstr(menuindex + 2, 1, ">")
+        if viewmode == USER_MODE:
+            leftpanel.addstr(0, 0, "Users:")
+            rightpanel.addstr(0, 0, concat("Sessions: ", "(" + str(len(users[menuindex].sessions)) + ")"))
+            for i in range(screen.getmaxyx()[0] - 1):
+                leftpanel.addstr(i, leftpanel.getmaxyx()[1] - 1, "|")
+            lineindex = 1
+            for user in users:
+                lineindex = lineindex + 1
+                leftpanel.addstr(lineindex, 2, user.username)
+            leftpanel.addstr(menuindex + 2, 1, ">")
+            
+            lineindex = 1
+            seluser = users[menuindex]
+            for session in seluser.sessions:
+                lineindex = lineindex + 1
+                try:
+                    rightpanel.addstr(lineindex, 2, concat(session.entrys[0].timestamp, "from", "[" + session.address + "]"))
+                except curses.error:
+                    pass        
+
+            char = screen.getch()
+            leftpanel.addstr(0, 10, str(char))
+            if char == curses.KEY_UP:
+                if menuindex > 0:
+                    menuindex = menuindex - 1
+                    leftpanel.clear()
+                    rightpanel.clear()
+            elif char == curses.KEY_DOWN:
+                if menuindex < len(users) - 1:
+                    menuindex = menuindex + 1
+                    leftpanel.clear()
+                    rightpanel.clear()
+            elif char == curses.KEY_RIGHT:
+                menuindex = 0
+                viewmode = SESSION_MODE
+                leftpanel.clear()
+                rightpanel.clear()
+
+        elif viewmode == SESSION_MODE:
+            selsession = sessions[menuindex]
+            leftpanel.addstr(0, 0, concat("Sessions: ", "(" + str(len(seluser.sessions)) + ")"))
+            for i in range(screen.getmaxyx()[0] - 1):
+                leftpanel.addstr(i, leftpanel.getmaxyx()[1] - 1, "|")
+            lineindex = 1
+            for session in seluser.sessions:
+                lineindex = lineindex + 1
+                try:
+                    leftpanel.addstr(lineindex, 2, concat(session.entrys[0].timestamp, "from", "[" + session.address + "]"))
+                except curses.error:
+                    pass
+            
+            lineindex = 1
+            for entry in selsession.entrys:
+                rightpanel.addstr(lineindex, 2, entry.unparsed)
+
+            leftpanel.addstr(menuindex + 2, 1, ">")
+
+
         
-        lineindex = 1
-        for session in users[menuindex].sessions:
-            lineindex = lineindex + 1
-            try:
-                rightpanel.addstr(lineindex, 2, concat(session.entrys[0].timestamp, "from", "[" + session.address + "]"))
-            except curses.error:
-                pass        
-  
-        char = screen.getch()
-        if char == curses.KEY_UP:
-            if menuindex > 0:
-                menuindex = menuindex - 1
+                    
+
+            char = screen.getch()
+            if char == curses.KEY_UP:
+                if menuindex > 0:
+                    menuindex = menuindex - 1
+                    leftpanel.clear()
+                    rightpanel.clear()
+            elif char == curses.KEY_DOWN:
+                if menuindex < len(seluser.sessions):
+                    menuindex = menuindex + 1
+                    leftpanel.clear()
+                    rightpanel.clear() 
+            elif char == curses.KEY_LEFT:
                 leftpanel.clear()
                 rightpanel.clear()
-        elif char == curses.KEY_DOWN:
-            if menuindex < len(users) - 1:
-                menuindex = menuindex + 1
-                leftpanel.clear()
-                rightpanel.clear()
+                viewmode = USER_MODE
+                menuindex = 0
+
+
+        #TODO - add quit by key instead of just kb interrupt
+
+
         
 
         leftpanel.refresh()
