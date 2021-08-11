@@ -12,6 +12,7 @@ ACTION_READ = 1
 ACTION_WRITE = 2
 ACTION_OPENDIR = 3
 ACTION_CLOSEDIR = 4
+ACTION_LOGOUT = 5
 
 extractIP = re.compile("from \[(.*?)]")
 
@@ -24,12 +25,16 @@ class Entry:
             self.action = ACTION_LOGIN
         else:
             self.username = "notalogin"
+            self.action = ACTION_READ #doesn't matter which action goes here as long as it isn't ACTION_LOGIN
         words = self.unparsed.split(" ")
         self.timestamp = words[0] + " " + words[1] + " " + words[2]
-        if words[3] == "opendir":
-            self.action = ACTION_OPENDIR
-        else:
-            self.action = ACTION_READ
+        if self.action != ACTION_LOGIN:
+            if words[3] == "opendir":
+                self.action = ACTION_OPENDIR
+            elif "session closed for local user" in unparsed:
+                self.action = ACTION_LOGOUT
+            else:
+                self.action = ACTION_READ
 
 class User:
     def __init__(self, username):
@@ -50,11 +55,6 @@ def concat(*args):
         tout = tout + " " + str(arg)
     return tout;
 
-users = []
-usernames = []
-sessions = []
-entries = []
-
 def isaNumber(string):
     try:
         int(string)
@@ -68,8 +68,20 @@ def duparray(array):
         temparray.append(i)
     return temparray
 
+def interpret(entry):
+    if entry.action == ACTION_LOGIN:
+        return concat(entry.timestamp, "-", "User", entry.username, "logged in")
+    elif entry.action == ACTION_LOGOUT:
+        return concat(entry.timestamp, '-', "User logged out")
+    else:
+        return entry.unparsed #catch any unimplemented cases and print the raw entry
+
 def main(screen):
+    users = []
+    usernames = []
+    sessions = []
     entries = []
+
     screen.clear()
     if len(sys.argv) < 2:
         targetWin = curses.newwin(1, screen.getmaxyx()[1], int(screen.getmaxyx()[0] / 2), 0)
@@ -173,9 +185,10 @@ def main(screen):
     viewmode = USER_MODE
 
     while True:
+        #TODO - handle screen resizing
         if viewmode == USER_MODE:
-            leftpanel.addstr(0, 0, "Users:")
-            rightpanel.addstr(0, 0, concat("Sessions: ", "(" + str(len(users[menuindex].sessions)) + ")"))
+            leftpanel.addstr(0, 0, concat("Users:","(" + str(len(users)) + ")"))
+            rightpanel.addstr(0, 0, concat("Sessions: ", "(" + str(len(users[menuindex].sessions)) + " sessions)"))
             for i in range(screen.getmaxyx()[0] - 1):
                 leftpanel.addstr(i, leftpanel.getmaxyx()[1] - 1, "|")
             lineindex = 1
@@ -218,7 +231,8 @@ def main(screen):
 
         elif viewmode == SESSION_MODE or ENTRY_MODE:
             selsession = seluser.sessions[menuindex]
-            leftpanel.addstr(0, 0, concat("Sessions: ", "(" + str(len(seluser.sessions)) + ")"))
+            leftpanel.addstr(0, 0, concat("Sessions for user", seluser.username + ":", "(" + str(len(seluser.sessions)) + " sessions)"))
+            rightpanel.addstr(0, 0, concat(len(seluser.sessions), "entries in session", selsession.id))
             for i in range(screen.getmaxyx()[0] - 1):
                 leftpanel.addstr(i, leftpanel.getmaxyx()[1] - 1, "|")
                 if viewmode == ENTRY_MODE:
@@ -236,7 +250,7 @@ def main(screen):
             entries.reverse()
             for entry in entries:
                 try:
-                    rightpanel.addstr("\n" + entry.unparsed)
+                    rightpanel.addstr("\n" + interpret(entry))
                 except curses.error:
                     pass
 
