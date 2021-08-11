@@ -68,9 +68,6 @@ def duparray(array):
         temparray.append(i)
     return temparray
 
-
-
-
 def main(screen):
     entries = []
     screen.clear()
@@ -84,9 +81,9 @@ def main(screen):
         targetfile = editbox.gather().strip()
         targetWin.clear()
         targetWin.refresh()
-        
     else:
         targetfile = sys.argv[1]
+
     screen.clear()
     screen.addstr("analyzing file: " + targetfile)
     screen.refresh()
@@ -103,7 +100,6 @@ def main(screen):
 
     logs = logfile.split("\n")
     workingline = 0
-
 
     for line in logs:
         workingline = workingline + 1
@@ -123,7 +119,6 @@ def main(screen):
     #if firstdate.timestamp() > lastdate.timestamp():
     #   entrys.reverse()
     #TODO - why does this cause doubling ^ ?
-
 
     workingline = 0
     screen.addstr("\nanalyzing valid entries")
@@ -171,16 +166,10 @@ def main(screen):
     leftpanel = curses.newwin(screen.getmaxyx()[0], int(screen.getmaxyx()[1] / 2), 0, 0)
     rightpanel = curses.newwin(screen.getmaxyx()[0], int(screen.getmaxyx()[1] / 2), 0, int(screen.getmaxyx()[1] / 2))
 
-
-
-    menuindex = 0
-
-    
-
     curses.curs_set(0)
-
     curses.start_color()
 
+    menuindex = 0
     viewmode = USER_MODE
 
     while True:
@@ -252,10 +241,7 @@ def main(screen):
                     pass
 
             leftpanel.addstr(menuindex + 2, 1, ">")
-
-
-        
-                    
+      
             try:
                 char = screen.getkey()
                 if char == "KEY_UP":
@@ -291,13 +277,7 @@ def main(screen):
             except curses.error:
                 pass
 
-        #TODO - add quit by key instead of just kb interrupt
-
-
-        
-
         leftpanel.refresh()
         rightpanel.refresh()
         
-
 wrapper(main)
