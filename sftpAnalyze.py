@@ -202,31 +202,38 @@ def main(screen):
                 try:
                     rightpanel.addstr(lineindex, 2, concat(session.entries[0].timestamp, "from", "[" + session.address + "]"))
                 except curses.error:
-                    pass        
+                    pass    
 
-            char = screen.getch()
-            leftpanel.addstr(0, 10, str(char))
-            if char == curses.KEY_UP:
-                if menuindex > 0:
-                    menuindex = menuindex - 1
+            try:
+                char = screen.getkey()
+                leftpanel.addstr(0, 10, str(char))
+                if char == "KEY_UP":
+                    if menuindex > 0:
+                        menuindex = menuindex - 1
+                        leftpanel.clear()
+                        rightpanel.clear()
+                elif char == "KEY_DOWN":
+                    if menuindex < len(users) - 1:
+                        menuindex = menuindex + 1
+                        leftpanel.clear()
+                        rightpanel.clear()
+                elif char == "KEY_RIGHT":
+                    menuindex = 0
+                    viewmode = SESSION_MODE
                     leftpanel.clear()
                     rightpanel.clear()
-            elif char == curses.KEY_DOWN:
-                if menuindex < len(users) - 1:
-                    menuindex = menuindex + 1
-                    leftpanel.clear()
-                    rightpanel.clear()
-            elif char == curses.KEY_RIGHT:
-                menuindex = 0
-                viewmode = SESSION_MODE
-                leftpanel.clear()
-                rightpanel.clear()
+                elif char.lower() == 'q':
+                    exit()
+            except curses.error:
+                pass
 
-        elif viewmode == SESSION_MODE:
+        elif viewmode == SESSION_MODE or ENTRY_MODE:
             selsession = seluser.sessions[menuindex]
             leftpanel.addstr(0, 0, concat("Sessions: ", "(" + str(len(seluser.sessions)) + ")"))
             for i in range(screen.getmaxyx()[0] - 1):
                 leftpanel.addstr(i, leftpanel.getmaxyx()[1] - 1, "|")
+                if viewmode == ENTRY_MODE:
+                    leftpanel.addstr(i, leftpanel.getmaxyx()[1] - 2, ">")
             lineindex = 1
             for session in seluser.sessions:
                 lineindex = lineindex + 1
@@ -249,24 +256,40 @@ def main(screen):
 
         
                     
-
-            char = screen.getch()
-            if char == curses.KEY_UP:
-                if menuindex > 0:
-                    menuindex = menuindex - 1
-                    leftpanel.clear()
-                    rightpanel.clear()
-            elif char == curses.KEY_DOWN:
-                if menuindex < len(seluser.sessions) - 1:
-                    menuindex = menuindex + 1
-                    leftpanel.clear()
-                    rightpanel.clear() 
-            elif char == curses.KEY_LEFT:
-                leftpanel.clear()
-                rightpanel.clear()
-                viewmode = USER_MODE
-                menuindex = 0
-
+            try:
+                char = screen.getkey()
+                if char == "KEY_UP":
+                    if viewmode == SESSION_MODE:
+                        if menuindex > 0:
+                            menuindex = menuindex - 1
+                            leftpanel.clear()
+                            rightpanel.clear()
+                    else:
+                        pass #TODO - implement scrolling here
+                elif char == "KEY_DOWN":
+                    if viewmode == SESSION_MODE:
+                        if menuindex < len(seluser.sessions) - 1:
+                            menuindex = menuindex + 1
+                            leftpanel.clear()
+                            rightpanel.clear()
+                    else:
+                        pass #TODO - implement scrolling here
+                elif char == "KEY_LEFT":
+                    if viewmode == SESSION_MODE:
+                        leftpanel.clear()
+                        rightpanel.clear()
+                        viewmode = USER_MODE
+                        menuindex = 0
+                    else:
+                        viewmode = SESSION_MODE
+                        leftpanel.clear()
+                        rightpanel.clear()
+                elif char == "KEY_RIGHT":
+                    viewmode = ENTRY_MODE
+                elif char.lower() == 'q':
+                    exit()
+            except curses.error:
+                pass
 
         #TODO - add quit by key instead of just kb interrupt
 
