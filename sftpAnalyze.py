@@ -230,6 +230,8 @@ def main(screen):
                 pass
 
         elif viewmode == SESSION_MODE or ENTRY_MODE:
+            if viewmode == SESSION_MODE:
+                scrollpoint = 0
             selsession = seluser.sessions[menuindex]
             leftpanel.addstr(0, 0, concat("Sessions for user", seluser.username + ":", "(" + str(len(seluser.sessions)) + " sessions)"))
             rightpanel.addstr(0, 0, concat(len(seluser.sessions), "entries in session", selsession.id))
@@ -248,7 +250,7 @@ def main(screen):
             rightpanel.move(1, 2)
             entries = duparray(selsession.entries)
             entries.reverse()
-            for entry in entries:
+            for entry in entries[scrollpoint:]:
                 try:
                     rightpanel.addstr("\n" + interpret(entry))
                 except curses.error:
@@ -264,16 +266,18 @@ def main(screen):
                             menuindex = menuindex - 1
                             leftpanel.clear()
                             rightpanel.clear()
-                    else:
-                        pass #TODO - implement scrolling here
+                    elif scrollpoint != 0:
+                        scrollpoint = scrollpoint - 1
+                        rightpanel.clear()
                 elif char == "KEY_DOWN":
                     if viewmode == SESSION_MODE:
                         if menuindex < len(seluser.sessions) - 1:
                             menuindex = menuindex + 1
                             leftpanel.clear()
                             rightpanel.clear()
-                    else:
-                        pass #TODO - implement scrolling here
+                    elif scrollpoint < len(entries) - 1:
+                        scrollpoint = scrollpoint + 1
+                        rightpanel.clear()
                 elif char == "KEY_LEFT":
                     if viewmode == SESSION_MODE:
                         leftpanel.clear()
