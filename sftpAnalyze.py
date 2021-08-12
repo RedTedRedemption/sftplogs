@@ -13,9 +13,16 @@ ACTION_WRITE = 2
 ACTION_OPENDIR = 3
 ACTION_CLOSEDIR = 4
 ACTION_LOGOUT = 5
+ACTION_OPEN = 6
+ACTION_CLOSE = 7
+
+ACTION_CLOSE_PATH = 1
+ACTION_CLOSE_BYTESREAD = 2
+ACTION_CLOSE_BYTESWRITTEN = 3
 
 extractIP = re.compile("from \[(.*?)]")
 extractPath = re.compile("\"(.*?)\"")
+closeParse = re.compile("close \"(.*?)\" bytes read (.*?).written (.*?)$")
 
 class Entry:
     def __init__(self, unparsed):
@@ -36,6 +43,8 @@ class Entry:
                 self.action = ACTION_CLOSEDIR
             elif "session closed for local user" in unparsed:
                 self.action = ACTION_LOGOUT
+            elif closeParse.search(self.unparsed) != None:
+                self.action = ACTION_CLOSE
             else:
                 self.action = ACTION_READ
 
@@ -45,12 +54,15 @@ class User:
         self.username = username
 
 class Session:
+    uuid = 0
     def __init__(self, id):
+        self.uuid = Session.uuid
+        Session.uuid = Session.uuid + 1
         self.id = id
         self.entries = []
         self.address = ''
         self.username = ''
-        self.user = '' #TEMPORARY ASSIGNMENT - var is changed later
+        self.user = ''
 
 def concat(*args):
     tout = str(args[0])
@@ -88,6 +100,9 @@ def interpret(entry):
         return concat(entry.timestamp, '-', 'Opened directory', surround('"', extractPath.search(entry.unparsed).group(1)))
     elif entry.action == ACTION_CLOSEDIR:
         return concat(entry.timestamp, '-', 'Closed directory', surround('"', extractPath.search(entry.unparsed).group(1)))
+    elif entry.action == ACTION_CLOSE:
+        match = closeParse.search(entry.unparsed)
+        return concat(entry.timestamp, '-', 'Closed file', surround('"', match.group(ACTION_CLOSE_PATH)), 'Read', match.group(ACTION_CLOSE_BYTESREAD), 'bytes | Wrote', match.group(ACTION_CLOSE_BYTESWRITTEN), 'bytes')
     else:
         return entry.unparsed #catch any unimplemented cases and print the raw entry
 
@@ -184,7 +199,12 @@ def main(screen):
         if user.username != "notalogin":
             for session in sessions:
                 if session.username == user.username:
-                    user.sessions.append(session)
+                    notinsessions = True
+                    for i in user.sessions:
+                        if i.uuid == session.uuid:
+                            notinsessions = False
+                    if notinsessions:
+                        user.sessions.append(session)
 
     screen.addstr(7, 0, "Analysis Complete")
     screen.addstr(8, 0, "PRESS ENTER TO CONTINUE")
@@ -194,17 +214,23 @@ def main(screen):
     screen.clear()
     screen.refresh()
 
-    leftpanel = curses.newwin(screen.getmaxyx()[0], int(screen.getmaxyx()[1] / 2), 0, 0)
-    rightpanel = curses.newwin(screen.getmaxyx()[0], int(screen.getmaxyx()[1] / 2), 0, int(screen.getmaxyx()[1] / 2))
+    leftpanel = curses.newwin(screen.getmaxyx()[0], 56, 0, 0)
+    rightpanel = curses.newwin(screen.getmaxyx()[0], screen.getmaxyx()[1] - 56, 0, 56)
+
+    screensize = screen.getmaxyx()
 
     curses.curs_set(0)
     curses.start_color()
 
     menuindex = 0
     viewmode = USER_MODE
+    left_scrollpoint = 0
 
     while True:
-        #TODO - handle screen resizing
+        if screensize != screen.getmaxyx():
+            screensize = screen.getmaxyx()
+            leftpanel = curses.newwin(screen.getmaxyx()[0], 56, 0, 0)
+            rightpanel = curses.newwin(screen.getmaxyx()[0], screen.getmaxyx()[1] - 56, 0, 56)
         if viewmode == USER_MODE:
             leftpanel.addstr(0, 0, concat("Users:","(" + str(len(users)) + ")"))
             rightpanel.addstr(0, 0, concat("Sessions: ", "(" + str(len(users[menuindex].sessions)) + " sessions)"))
@@ -221,13 +247,12 @@ def main(screen):
             for session in seluser.sessions:
                 lineindex = lineindex + 1
                 try:
-                    rightpanel.addstr(lineindex, 2, concat(session.entries[0].timestamp, "from", "[" + session.address + "]"))
+                    rightpanel.addstr(lineindex, 2, concat(session.entries[0].timestamp, "from", "[" + session.address + "]", "--- ID", session.id))
                 except curses.error:
                     pass    
 
             try:
                 char = screen.getkey()
-                leftpanel.addstr(0, 10, str(char))
                 if char == "KEY_UP":
                     if menuindex > 0:
                         menuindex = menuindex - 1
@@ -250,7 +275,7 @@ def main(screen):
 
         elif viewmode == SESSION_MODE or ENTRY_MODE:
             if viewmode == SESSION_MODE:
-                scrollpoint = 0
+                right_scrollpoint = 0
             selsession = seluser.sessions[menuindex]
             leftpanel.addstr(0, 0, concat("Sessions for user", seluser.username + ":", "(" + str(len(seluser.sessions)) + " sessions)"))
             rightpanel.addstr(0, 0, concat(len(seluser.sessions), "entries in session", selsession.id))
@@ -262,21 +287,21 @@ def main(screen):
             for session in seluser.sessions:
                 lineindex = lineindex + 1
                 try:
-                    leftpanel.addstr(lineindex, 2, concat(session.entries[0].timestamp, "from", "[" + session.address + "]"))
+                    leftpanel.addstr(lineindex, 2, concat(session.entries[0].timestamp, "from", "[" + session.address + "]", "--- ID", session.id))
+                    if session.uuid == selsession.uuid:
+                        leftpanel.addstr(lineindex, 1, ">")
                 except curses.error:
                     pass
             
             rightpanel.move(1, 2)
             entries = ["-------LOGS END-------"] + duplist(selsession.entries) + ["-------LOGS START-------"]
             entries.reverse()
-            for entry in entries[scrollpoint:]:
+            for entry in entries[right_scrollpoint:]:
                 try:
                     rightpanel.addstr("\n" + interpret(entry))
                 except curses.error:
                     pass
 
-            leftpanel.addstr(menuindex + 2, 1, ">")
-      
             try:
                 char = screen.getkey()
                 if char == "KEY_UP":
@@ -285,8 +310,8 @@ def main(screen):
                             menuindex = menuindex - 1
                             leftpanel.clear()
                             rightpanel.clear()
-                    elif scrollpoint != 0:
-                        scrollpoint = scrollpoint - 1
+                    elif right_scrollpoint != 0:
+                        right_scrollpoint = right_scrollpoint - 1
                         rightpanel.clear()
                 elif char == "KEY_DOWN":
                     if viewmode == SESSION_MODE:
@@ -294,8 +319,8 @@ def main(screen):
                             menuindex = menuindex + 1
                             leftpanel.clear()
                             rightpanel.clear()
-                    elif scrollpoint < len(entries) - 1:
-                        scrollpoint = scrollpoint + 1
+                    elif right_scrollpoint < len(entries) - 1:
+                        right_scrollpoint = right_scrollpoint + 1
                         rightpanel.clear()
                 elif char == "KEY_LEFT":
                     if viewmode == SESSION_MODE:
