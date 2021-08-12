@@ -16,5 +16,5 @@ If a file is not specified it will ask you to enter the name of one.
 You can also specify a file on the command line.
 
 Syntax is:
-`./sftpAnalyze.py <filename>`
+`./sftpAnalyze.py <filename>` or
 `./sftpAnalyze.py`
