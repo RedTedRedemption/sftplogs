@@ -15,6 +15,7 @@ ACTION_CLOSEDIR = 4
 ACTION_LOGOUT = 5
 ACTION_OPEN = 6
 ACTION_CLOSE = 7
+ACTION_DELETE = 8
 
 ACTION_CLOSE_PATH = 1
 ACTION_CLOSE_BYTESREAD = 2
@@ -23,6 +24,7 @@ ACTION_CLOSE_BYTESWRITTEN = 3
 extractIP = re.compile("from \[(.*?)]")
 extractPath = re.compile("\"(.*?)\"")
 closeParse = re.compile("close \"(.*?)\" bytes read (.*?).written (.*?)$")
+deleteParse = re.compile("remove name \"(.*?)\"")
 
 class Entry:
     def __init__(self, unparsed):
@@ -45,6 +47,8 @@ class Entry:
                 self.action = ACTION_LOGOUT
             elif closeParse.search(self.unparsed) != None:
                 self.action = ACTION_CLOSE
+            elif deleteParse.search(self.unparsed) != None:
+                self.action = ACTION_DELETE
             else:
                 self.action = ACTION_READ
 
@@ -103,6 +107,9 @@ def interpret(entry):
     elif entry.action == ACTION_CLOSE:
         match = closeParse.search(entry.unparsed)
         return concat(entry.timestamp, '-', 'Closed file', surround('"', match.group(ACTION_CLOSE_PATH)), 'Read', match.group(ACTION_CLOSE_BYTESREAD), 'bytes | Wrote', match.group(ACTION_CLOSE_BYTESWRITTEN), 'bytes')
+    elif entry.action == ACTION_DELETE:
+        match = deleteParse.search(entry.unparsed)
+        return concat(entry.timestamp, '-', 'Deleted file', surround('"', match.group(1)))
     else:
         return entry.unparsed #catch any unimplemented cases and print the raw entry
 
