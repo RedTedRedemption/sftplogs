@@ -15,6 +15,7 @@ ACTION_CLOSEDIR = 4
 ACTION_LOGOUT = 5
 
 extractIP = re.compile("from \[(.*?)]")
+extractPath = re.compile("\"(.*?)\"")
 
 class Entry:
     def __init__(self, unparsed):
@@ -29,8 +30,10 @@ class Entry:
         words = self.unparsed.split(" ")
         self.timestamp = words[0] + " " + words[1] + " " + words[2]
         if self.action != ACTION_LOGIN:
-            if words[3] == "opendir":
+            if words[5] == "opendir":
                 self.action = ACTION_OPENDIR
+            elif words[5] == "closedir":
+                self.action = ACTION_CLOSEDIR
             elif "session closed for local user" in unparsed:
                 self.action = ACTION_LOGOUT
             else:
@@ -62,17 +65,29 @@ def isaNumber(string):
         return False
     return True
 
-def duparray(array):
+def duplist(list):
     temparray = []
-    for i in array:
+    for i in list:
         temparray.append(i)
     return temparray
 
+def surround(outside, *strings):
+    tout = outside
+    for string in strings:
+        tout = tout + string
+    return tout + outside
+
 def interpret(entry):
+    if type(entry) == type(str()):
+        return entry
     if entry.action == ACTION_LOGIN:
         return concat(entry.timestamp, "-", "User", entry.username, "logged in")
     elif entry.action == ACTION_LOGOUT:
         return concat(entry.timestamp, '-', "User logged out")
+    elif entry.action == ACTION_OPENDIR:
+        return concat(entry.timestamp, '-', 'Opened directory', surround('"', extractPath.search(entry.unparsed).group(1)))
+    elif entry.action == ACTION_CLOSEDIR:
+        return concat(entry.timestamp, '-', 'Closed directory', surround('"', extractPath.search(entry.unparsed).group(1)))
     else:
         return entry.unparsed #catch any unimplemented cases and print the raw entry
 
@@ -171,6 +186,10 @@ def main(screen):
                 if session.username == user.username:
                     user.sessions.append(session)
 
+    screen.addstr(7, 0, "Analysis Complete")
+    screen.addstr(8, 0, "PRESS ENTER TO CONTINUE")
+    screen.getstr()
+
     screen.nodelay(1)
     screen.clear()
     screen.refresh()
@@ -248,7 +267,7 @@ def main(screen):
                     pass
             
             rightpanel.move(1, 2)
-            entries = duparray(selsession.entries)
+            entries = ["-------LOGS END-------"] + duplist(selsession.entries) + ["-------LOGS START-------"]
             entries.reverse()
             for entry in entries[scrollpoint:]:
                 try:
