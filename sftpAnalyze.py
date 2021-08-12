@@ -295,7 +295,7 @@ def main(screen):
                 right_scrollpoint = 0
             selsession = seluser.sessions[menuindex]
             leftpanel.addstr(0, 0, concat("Sessions for user", seluser.username + ":", "(" + str(len(seluser.sessions)) + " sessions)"))
-            rightpanel.addstr(0, 0, concat(len(seluser.sessions), "entries in session", selsession.id))
+            rightpanel.addstr(0, 0, concat(len(selsession.entries), "entries in session", selsession.id))
             for i in range(screen.getmaxyx()[0] - 1):
                 leftpanel.addstr(i, leftpanel.getmaxyx()[1] - 1, "|")
                 if viewmode == ENTRY_MODE:
