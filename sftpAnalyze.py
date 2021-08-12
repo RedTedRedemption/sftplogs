@@ -17,6 +17,10 @@ ACTION_OPEN = 6
 ACTION_CLOSE = 7
 ACTION_DELETE = 8
 
+ACTION_OPEN_PATH = 1
+ACTION_OPEN_FLAGS = 2
+ACTION_OPEN_MODE = 3
+
 ACTION_CLOSE_PATH = 1
 ACTION_CLOSE_BYTESREAD = 2
 ACTION_CLOSE_BYTESWRITTEN = 3
@@ -25,6 +29,7 @@ extractIP = re.compile("from \[(.*?)]")
 extractPath = re.compile("\"(.*?)\"")
 closeParse = re.compile("close \"(.*?)\" bytes read (.*?).written (.*?)$")
 deleteParse = re.compile("remove name \"(.*?)\"")
+openParse = re.compile("open \"(.*?)\" flags (.*?) mode (.*?)$")
 
 class Entry:
     def __init__(self, unparsed):
@@ -49,6 +54,8 @@ class Entry:
                 self.action = ACTION_CLOSE
             elif deleteParse.search(self.unparsed) != None:
                 self.action = ACTION_DELETE
+            elif openParse.search(self.unparsed) != None:
+                self.action = ACTION_OPEN
             else:
                 self.action = ACTION_READ
 
@@ -110,6 +117,9 @@ def interpret(entry):
     elif entry.action == ACTION_DELETE:
         match = deleteParse.search(entry.unparsed)
         return concat(entry.timestamp, '-', 'Deleted file', surround('"', match.group(1)))
+    elif entry.action == ACTION_OPEN:
+        match = openParse.search(entry.unparsed)
+        return concat(entry.timestamp, '-', 'Opened file', surround('"', match.group(ACTION_OPEN_PATH)), "with flags", match.group(ACTION_OPEN_FLAGS), 'mode', match.group(ACTION_OPEN_MODE))
     else:
         return entry.unparsed #catch any unimplemented cases and print the raw entry
 
