@@ -10,7 +10,7 @@ This program was written on fedora, so your log output format may be different. 
 # Installation and usage
 Please note: this program is designed to work on Linux. While there is a curses library that can be installed on windows manually, I have not tested it, so your milage will vary.
 
-Simply download the file and run it with python3. The necessary libraries should be built into Python 3 by default.
+Simply download sftpAnalyze.py and run it or run `git clone https://github.com/RedTedRedemption/sftplogs`. The necessary libraries should be built into Python 3 by default on Linux/BSD.
 
 If a file is not specified it will ask you to enter the name of one.
 You can also specify a file on the command line.
