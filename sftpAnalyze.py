@@ -248,9 +248,14 @@ def main(screen):
             screensize = screen.getmaxyx()
             leftpanel = curses.newwin(screen.getmaxyx()[0], 56, 0, 0)
             rightpanel = curses.newwin(screen.getmaxyx()[0], screen.getmaxyx()[1] - 56, 0, 56)
+        leftpanel.addstr(0, 0, " " * leftpanel.getmaxyx()[1], curses.A_REVERSE)
+        leftpanel.addstr(screen.getmaxyx()[0] - 1, 0, " " * (leftpanel.getmaxyx()[1] - 1), curses.A_REVERSE)
+        rightpanel.addstr(0, 0, " " * rightpanel.getmaxyx()[1], curses.A_REVERSE)
+        rightpanel.addstr(screen.getmaxyx()[0] - 1, 0, " " * (rightpanel.getmaxyx()[1] - 1), curses.A_REVERSE)
+        leftpanel.addstr(screen.getmaxyx()[0] - 1, 0, "Use the arrow keys to navigate, 'Q' to quit", curses.A_REVERSE)
         if viewmode == USER_MODE:
-            leftpanel.addstr(0, 0, concat("Users:","(" + str(len(users)) + ")"))
-            rightpanel.addstr(0, 0, concat("Sessions: ", "(" + str(len(users[menuindex].sessions)) + " sessions)"))
+            leftpanel.addstr(0, 0, concat("Users:","(" + str(len(users)) + ")"), curses.A_REVERSE)
+            rightpanel.addstr(0, 0, concat("Sessions: ", "(" + str(len(users[menuindex].sessions)) + " sessions)"), curses.A_REVERSE)
             for i in range(screen.getmaxyx()[0] - 1):
                 leftpanel.addstr(i, leftpanel.getmaxyx()[1] - 1, "|")
             lineindex = 1
@@ -294,8 +299,8 @@ def main(screen):
             if viewmode == SESSION_MODE:
                 right_scrollpoint = 0
             selsession = seluser.sessions[menuindex]
-            leftpanel.addstr(0, 0, concat("Sessions for user", seluser.username + ":", "(" + str(len(seluser.sessions)) + " sessions)"))
-            rightpanel.addstr(0, 0, concat(len(selsession.entries), "entries in session", selsession.id))
+            leftpanel.addstr(0, 0, concat("Sessions for user", seluser.username + ":", "(" + str(len(seluser.sessions)) + " sessions)"), curses.A_REVERSE)
+            rightpanel.addstr(0, 0, concat(len(selsession.entries), "entries in session", selsession.id), curses.A_REVERSE)
             for i in range(screen.getmaxyx()[0] - 1):
                 leftpanel.addstr(i, leftpanel.getmaxyx()[1] - 1, "|")
                 if viewmode == ENTRY_MODE:
@@ -315,7 +320,7 @@ def main(screen):
             entries.reverse()
             for entry in entries[right_scrollpoint:]:
                 try:
-                    rightpanel.addstr("\n" + interpret(entry))
+                    rightpanel.addstr("\n" + " " + interpret(entry))
                 except curses.error:
                     pass
 
