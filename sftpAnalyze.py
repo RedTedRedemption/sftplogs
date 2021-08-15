@@ -132,7 +132,7 @@ def main(screen):
     screen.clear()
     if len(sys.argv) < 2:
         targetWin = curses.newwin(1, screen.getmaxyx()[1], int(screen.getmaxyx()[0] / 2), 0)
-        screen.addstr(int(screen.getmaxyx()[0] / 2) - 1, 0, "enter file to analyze: ")
+        screen.addstr(int(screen.getmaxyx()[0] / 2) - 1, 0, "Enter file to analyze: ")
         screen.refresh()
         editbox = Textbox(targetWin)
         targetWin.refresh()
