@@ -232,12 +232,16 @@ def main(screen):
     screen.refresh()
 
     leftpanel = curses.newwin(screen.getmaxyx()[0], 56, 0, 0)
-    rightpanel = curses.newwin(screen.getmaxyx()[0], screen.getmaxyx()[1] - 56, 0, 56)
-
+    rightpanel = curses.newwin(screen.getmaxyx()[0] - 1, screen.getmaxyx()[1] - 56, 0, 56)
+    searchhintwin = curses.newwin(1, screen.getmaxyx()[1] - 56, screen.getmaxyx()[0] - 2, 56)
+    searchwin = curses.newwin(1, screen.getmaxyx()[1] - 56, screen.getmaxyx()[0] - 1, 56)
+    curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
+    searchhintwin.bkgd(' ', curses.color_pair(1) | curses.A_BOLD | curses.A_REVERSE)
+    searchwin.bkgd(' ', curses.color_pair(1) | curses.A_BOLD | curses.A_REVERSE)
+    
     screensize = screen.getmaxyx()
 
     curses.curs_set(0)
-    curses.start_color()
 
     menuindex = 0
     viewmode = USER_MODE
@@ -247,12 +251,17 @@ def main(screen):
         if screensize != screen.getmaxyx():
             screensize = screen.getmaxyx()
             leftpanel = curses.newwin(screen.getmaxyx()[0], 56, 0, 0)
-            rightpanel = curses.newwin(screen.getmaxyx()[0], screen.getmaxyx()[1] - 56, 0, 56)
+            rightpanel = curses.newwin(screen.getmaxyx()[0] - 1, screen.getmaxyx()[1] - 56, 0, 56)
+            searchhintwin = curses.newwin(screen.getmaxyx()[0], screen.getmaxyx()[1] - 56, screen.getmaxyx()[0] - 2, 56)
+        searchhintwin.bkgd(' ', curses.color_pair(1) | curses.A_BOLD | curses.A_REVERSE)
+        searchhintwin.addstr(0, 0, "Search for /u <user>, /s <session>, /e <entry> (regex accepted)", curses.A_REVERSE)
         leftpanel.addstr(0, 0, " " * leftpanel.getmaxyx()[1], curses.A_REVERSE)
         leftpanel.addstr(screen.getmaxyx()[0] - 1, 0, " " * (leftpanel.getmaxyx()[1] - 1), curses.A_REVERSE)
         rightpanel.addstr(0, 0, " " * rightpanel.getmaxyx()[1], curses.A_REVERSE)
-        rightpanel.addstr(screen.getmaxyx()[0] - 1, 0, " " * (rightpanel.getmaxyx()[1] - 1), curses.A_REVERSE)
         leftpanel.addstr(screen.getmaxyx()[0] - 1, 0, "Use the arrow keys to navigate, 'Q' to quit", curses.A_REVERSE)
+        searchwin.addstr(0, 0, "Type '/' to search")
+        searchwin.bkgd(' ', curses.color_pair(1) | curses.A_BOLD | curses.A_REVERSE)
+        
         if viewmode == USER_MODE:
             leftpanel.addstr(0, 0, concat("Users:","(" + str(len(users)) + ")"), curses.A_REVERSE)
             rightpanel.addstr(0, 0, concat("Sessions: ", "(" + str(len(users[menuindex].sessions)) + " sessions)"), curses.A_REVERSE)
@@ -272,7 +281,6 @@ def main(screen):
                     rightpanel.addstr(lineindex, 2, concat(session.entries[0].timestamp, "from", "[" + session.address + "]", "--- ID", session.id))
                 except curses.error:
                     pass    
-
             try:
                 char = screen.getkey()
                 if char == "KEY_UP":
@@ -292,6 +300,30 @@ def main(screen):
                     rightpanel.clear()
                 elif char.lower() == 'q':
                     exit()
+                elif char == '/':
+                    rightpanel.clear()
+                    rightpanel.refresh()
+                    searchwin.clear()
+                    searchbox = Textbox(searchwin)
+                    searchwin.refresh()
+                    searchhintwin.refresh()
+                    searchbox.edit()
+                    searchterm = searchbox.gather().strip()
+                    rightpanel.clear()
+                    searchregex = re.compile(searchterm)
+                    results = []
+                    for entry in entries:
+                        if searchregex.search(entry.unparsed) != None:
+                            results.append(entry)
+                    for entry in results:
+                        try:
+                            rightpanel.addstr(entry.unparsed + '\n')
+                        except curses.error:
+                            pass
+                    searchhintwin.clear()
+                    rightpanel.refresh()
+                    searchbox.edit()
+                    searchbox.gather()
             except curses.error:
                 pass
 
@@ -363,5 +395,6 @@ def main(screen):
 
         leftpanel.refresh()
         rightpanel.refresh()
+        searchwin.refresh()
         
 wrapper(main)
