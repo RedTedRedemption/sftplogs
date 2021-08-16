@@ -132,6 +132,7 @@ def main(screen):
     needtarget = True
     getfromsystem = True
     
+    
     curses.curs_set(0)
 
     screen.clear()
@@ -146,9 +147,7 @@ def main(screen):
             targetWin.refresh()
             char = screen.getkey()
             char = char
-            if char == "KEY_LEFT":
-                getfromsystem = not getfromsystem
-            elif char == "KEY_RIGHT":
+            if char == "KEY_LEFT" or char == "KEY_RIGHT":
                 getfromsystem = not getfromsystem
             elif char == "\n":
                 if not getfromsystem:
@@ -285,6 +284,34 @@ def main(screen):
     left_scrollpoint = 0
 
     curses.curs_set(0)
+    
+    def searchmode(__entries):
+        curses.curs_set(2)
+        rightpanel.clear()
+        rightpanel.refresh()
+        searchwin.clear()
+        searchbox = Textbox(searchwin)
+        searchwin.refresh()
+        searchhintwin.refresh()
+        searchbox.edit()
+        searchterm = searchbox.gather().strip()
+        rightpanel.clear()
+        searchregex = re.compile(searchterm)
+        results = []
+        for __entry in __entries:
+            if searchregex.search(__entry.unparsed) != None:
+                results.append(__entry)
+        for entry in results:
+            try:
+                rightpanel.addstr(__entry.unparsed + '\n')
+            except curses.error:
+                pass
+        searchhintwin.clear()
+        rightpanel.refresh()
+        searchbox.edit()
+        searchbox.gather()
+        del searchbox
+        curses.curs_set(0)
 
     while True:
         if screensize != screen.getmaxyx():
@@ -292,13 +319,14 @@ def main(screen):
             leftpanel = curses.newwin(screen.getmaxyx()[0], 56, 0, 0)
             rightpanel = curses.newwin(screen.getmaxyx()[0] - 1, screen.getmaxyx()[1] - 56, 0, 56)
             searchhintwin = curses.newwin(screen.getmaxyx()[0], screen.getmaxyx()[1] - 56, screen.getmaxyx()[0] - 2, 56)
+            searchwin = curses.newwin(1, screen.getmaxyx()[1] - 56, screen.getmaxyx()[0] - 1, 56)
         searchhintwin.bkgd(' ', curses.color_pair(1) | curses.A_BOLD | curses.A_REVERSE)
         searchhintwin.addstr(0, 0, "Search for /u <user>, /s <session>, /e <entry> (regex accepted)", curses.A_REVERSE)
         leftpanel.addstr(0, 0, " " * leftpanel.getmaxyx()[1], curses.A_REVERSE)
         leftpanel.addstr(screen.getmaxyx()[0] - 1, 0, " " * (leftpanel.getmaxyx()[1] - 1), curses.A_REVERSE)
         rightpanel.addstr(0, 0, " " * rightpanel.getmaxyx()[1], curses.A_REVERSE)
         leftpanel.addstr(screen.getmaxyx()[0] - 1, 0, "Use the arrow keys to navigate, 'Q' to quit", curses.A_REVERSE)
-        searchwin.addstr(0, 0, "Type '/' to search")
+        searchwin.addstr(0, 0, "Type '/' to search HERE, '?' to search EVERYWHERE")
         searchwin.bkgd(' ', curses.color_pair(1) | curses.A_BOLD | curses.A_REVERSE)
         
         if viewmode == USER_MODE:
@@ -340,29 +368,9 @@ def main(screen):
                 elif char.lower() == 'q':
                     exit()
                 elif char == '/':
-                    rightpanel.clear()
-                    rightpanel.refresh()
-                    searchwin.clear()
-                    searchbox = Textbox(searchwin)
-                    searchwin.refresh()
-                    searchhintwin.refresh()
-                    searchbox.edit()
-                    searchterm = searchbox.gather().strip()
-                    rightpanel.clear()
-                    searchregex = re.compile(searchterm)
-                    results = []
-                    for entry in entries:
-                        if searchregex.search(entry.unparsed) != None:
-                            results.append(entry)
-                    for entry in results:
-                        try:
-                            rightpanel.addstr(entry.unparsed + '\n')
-                        except curses.error:
-                            pass
-                    searchhintwin.clear()
-                    rightpanel.refresh()
-                    searchbox.edit()
-                    searchbox.gather()
+                    searchmode(entries)
+                elif char == '?':
+                    searchmode(entries)
             except curses.error:
                 pass
 
@@ -387,9 +395,9 @@ def main(screen):
                     pass
             
             rightpanel.move(1, 2)
-            entries = ["-------LOGS END-------"] + duplist(selsession.entries) + ["-------LOGS START-------"]
-            entries.reverse()
-            for entry in entries[right_scrollpoint:]:
+            _entries = ["-------LOGS END-------"] + duplist(selsession.entries) + ["-------LOGS START-------"]
+            _entries.reverse()
+            for entry in _entries[right_scrollpoint:]:
                 try:
                     rightpanel.addstr("\n" + " " + interpret(entry))
                 except curses.error:
@@ -412,7 +420,7 @@ def main(screen):
                             menuindex = menuindex + 1
                             leftpanel.clear()
                             rightpanel.clear()
-                    elif right_scrollpoint < len(entries) - 1:
+                    elif right_scrollpoint < len(_entries) - 1:
                         right_scrollpoint = right_scrollpoint + 1
                         rightpanel.clear()
                 elif char == "KEY_LEFT":
@@ -429,6 +437,10 @@ def main(screen):
                     viewmode = ENTRY_MODE
                 elif char.lower() == 'q':
                     exit()
+                elif char == '/':
+                    searchmode(_entries)
+                elif char == "?":
+                    searchmode(entries)
             except curses.error:
                 pass
 
