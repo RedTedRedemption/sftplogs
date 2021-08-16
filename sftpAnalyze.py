@@ -68,7 +68,7 @@ class Session:
     uuid = 0
     def __init__(self, id):
         self.uuid = Session.uuid
-        Session.uuid = Session.uuid + 1
+        Session.uuid += 1
         self.id = id
         self.entries = []
         self.address = ''
@@ -198,7 +198,7 @@ def main(screen):
         
     workingline = 0
     for line in logs:
-        workingline = workingline + 1
+        workingline += 1
         if "sftp-server[" in line:
             entries.append(Entry(line))
         screen.addstr(1, 0, concat("processing log entries...", workingline, "/", len(logs), "     found", len(entries), "sftp entries"))
@@ -240,7 +240,7 @@ def main(screen):
 
     workingline = 0
     for entry in entries:
-        workingline = workingline + 1
+        workingline += 1
         screen.addstr(4, 0, concat("populating sessions...", workingline, "/", len(entries)))
         screen.refresh()
         for session in sessions:
@@ -248,7 +248,7 @@ def main(screen):
                 session.entries.append(entry)
     workingline = 0
     for user in users:
-        workingline = workingline + 1
+        workingline += 1
         screen.addstr(5, 0, concat("attributing sessions to users", workingline, '/', len(users)))
         screen.refresh()
         if user.username != "notalogin":
@@ -336,14 +336,14 @@ def main(screen):
                 leftpanel.addstr(i, leftpanel.getmaxyx()[1] - 1, "|")
             lineindex = 1
             for user in users:
-                lineindex = lineindex + 1
+                lineindex += 1
                 leftpanel.addstr(lineindex, 2, user.username)
             leftpanel.addstr(menuindex + 2, 1, ">")
             
             lineindex = 1
             seluser = users[menuindex]
             for session in seluser.sessions:
-                lineindex = lineindex + 1
+                lineindex += 1
                 try:
                     rightpanel.addstr(lineindex, 2, concat(session.entries[0].timestamp, "from", "[" + session.address + "]", "--- ID", session.id))
                 except curses.error:
@@ -352,12 +352,12 @@ def main(screen):
                 char = screen.getkey()
                 if char == "KEY_UP":
                     if menuindex > 0:
-                        menuindex = menuindex - 1
+                        menuindex -= 1
                         leftpanel.clear()
                         rightpanel.clear()
                 elif char == "KEY_DOWN":
                     if menuindex < len(users) - 1:
-                        menuindex = menuindex + 1
+                        menuindex += 1
                         leftpanel.clear()
                         rightpanel.clear()
                 elif char == "KEY_RIGHT":
@@ -386,7 +386,7 @@ def main(screen):
                     leftpanel.addstr(i, leftpanel.getmaxyx()[1] - 2, ">")
             lineindex = 1
             for session in seluser.sessions:
-                lineindex = lineindex + 1
+                lineindex += 1
                 try:
                     leftpanel.addstr(lineindex, 2, concat(session.entries[0].timestamp, "from", "[" + session.address + "]", "--- ID", session.id))
                     if session.uuid == selsession.uuid:
@@ -408,20 +408,20 @@ def main(screen):
                 if char == "KEY_UP":
                     if viewmode == SESSION_MODE:
                         if menuindex > 0:
-                            menuindex = menuindex - 1
+                            menuindex -= 1
                             leftpanel.clear()
                             rightpanel.clear()
                     elif right_scrollpoint != 0:
-                        right_scrollpoint = right_scrollpoint - 1
+                        right_scrollpoint -= 1
                         rightpanel.clear()
                 elif char == "KEY_DOWN":
                     if viewmode == SESSION_MODE:
                         if menuindex < len(seluser.sessions) - 1:
-                            menuindex = menuindex + 1
+                            menuindex += 1
                             leftpanel.clear()
                             rightpanel.clear()
                     elif right_scrollpoint < len(_entries) - 1:
-                        right_scrollpoint = right_scrollpoint + 1
+                        right_scrollpoint += 1
                         rightpanel.clear()
                 elif char == "KEY_LEFT":
                     if viewmode == SESSION_MODE:
