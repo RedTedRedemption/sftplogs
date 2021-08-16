@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import sys, re, curses, datetime
+import sys, re, curses, datetime, subprocess
 from curses import wrapper
 from curses.textpad import Textbox, rectangle
 
@@ -128,44 +128,82 @@ def main(screen):
     usernames = []
     sessions = []
     entries = []
+    targetfile = None
+    needtarget = True
+    getfromsystem = True
+    
+    curses.curs_set(0)
 
     screen.clear()
     if len(sys.argv) < 2:
         targetWin = curses.newwin(1, screen.getmaxyx()[1], int(screen.getmaxyx()[0] / 2), 0)
-        screen.addstr(int(screen.getmaxyx()[0] / 2) - 1, 0, "enter file to analyze: ")
-        screen.refresh()
-        editbox = Textbox(targetWin)
-        targetWin.refresh()
-        editbox.edit()
-        targetfile = editbox.gather().strip()
-        targetWin.clear()
-        targetWin.refresh()
+        while needtarget:
+            targetWin.addstr("Get Logs from System", (curses.A_REVERSE if getfromsystem else curses.A_NORMAL))
+            targetWin.addstr("     ")
+            targetWin.addstr("Enter logfile", (curses.A_REVERSE if not getfromsystem else curses.A_NORMAL))
+            screen.addstr(int(screen.getmaxyx()[0] / 2) - 1, 0, "How should logs be acquired?")
+            screen.refresh()
+            targetWin.refresh()
+            char = screen.getkey()
+            char = char
+            if char == "KEY_LEFT":
+                getfromsystem = not getfromsystem
+            elif char == "KEY_RIGHT":
+                getfromsystem = not getfromsystem
+            elif char == "\n":
+                if not getfromsystem:
+                    curses.curs_set(1)
+                    screen.clear()
+                    targetWin.clear()
+                    screen.addstr(int(screen.getmaxyx()[0] / 2) - 1, 0, "enter file to analyze: ")
+                    screen.refresh()
+                    targetWin.refresh()
+                    editbox = Textbox(targetWin)
+                    editbox.edit()
+                    screen.refresh()
+                    targetWin.refresh()
+                    targetfile = editbox.gather().strip()
+                    targetWin.clear()
+                needtarget = False
+            else:
+                pass
+            targetWin.clear()
+            targetWin.move(0, 0)
     else:
         targetfile = sys.argv[1]
 
     screen.clear()
-    screen.addstr("analyzing file: " + targetfile)
+    if not getfromsystem:
+        screen.addstr("analyzing file: " + targetfile)
     screen.refresh()
 
-    try:
-        logfile = open(targetfile, "r")
-        logfile = logfile.read()
-    except IOError as err:
-        print(targetfile)
-        screen.clear()
-        screen.addstr(concat("error loading file:"), err) #TODO - make more graceful
-        screen.getkey()
-        exit()
-
-    logs = logfile.split("\n")
+    if not getfromsystem:
+        try:
+            logfile = open(targetfile, "r")
+            logfile = logfile.read()
+            logs = logfile.split("\n")
+        except IOError as err:
+            print(targetfile)
+            screen.clear()
+            screen.addstr(concat("error loading file:"), err) #TODO - make more graceful
+            screen.getkey()
+            exit()
+    else:
+        screen.addstr("getting logs from system. This may take some time...")
+        screen.refresh()
+        jctl = subprocess.Popen(('journalctl', '-r'), stdout=subprocess.PIPE)
+        logs = str(subprocess.check_output(('grep', 'sftp-server'), stdin=jctl.stdout)).strip("\\b").strip("'").split("\\n")
+        screen.addstr(concat("found", len(logs), "logs"))
+        screen.refresh()
+        
     workingline = 0
-
     for line in logs:
         workingline = workingline + 1
         if "sftp-server[" in line:
             entries.append(Entry(line))
         screen.addstr(1, 0, concat("processing log entries...", workingline, "/", len(logs), "     found", len(entries), "sftp entries"))
         screen.refresh()
+
 
     datesplitted = entries[0].timestamp.split(" ")
     timesplitted = datesplitted[2].split(":")
@@ -241,11 +279,11 @@ def main(screen):
     
     screensize = screen.getmaxyx()
 
-    curses.curs_set(0)
-
     menuindex = 0
     viewmode = USER_MODE
     left_scrollpoint = 0
+
+    curses.curs_set(0)
 
     while True:
         if screensize != screen.getmaxyx():
