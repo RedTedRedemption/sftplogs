@@ -19,8 +19,8 @@ Syntax is:
 `./sftpAnalyze.py <filename>` or
 `./sftpAnalyze.py`
 
-#Concepts Demonstrated
-+Efficient text processing
-+Regular Expressions
-+Text-Based GUI design
-+UX design
+# Concepts Demonstrated
++ Efficient text processing
++ Regular Expressions
++ Text-Based GUI design
++ UX design
