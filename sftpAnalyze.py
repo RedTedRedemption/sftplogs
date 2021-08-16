@@ -138,6 +138,7 @@ def main(screen):
     screen.clear()
     if len(sys.argv) < 2:
         targetWin = curses.newwin(1, screen.getmaxyx()[1], int(screen.getmaxyx()[0] / 2), 0)
+
         while needtarget:
             targetWin.addstr("Get Logs from System", (curses.A_REVERSE if getfromsystem else curses.A_NORMAL))
             targetWin.addstr("     ")
@@ -154,7 +155,7 @@ def main(screen):
                     curses.curs_set(1)
                     screen.clear()
                     targetWin.clear()
-                    screen.addstr(int(screen.getmaxyx()[0] / 2) - 1, 0, "enter file to analyze: ")
+                    screen.addstr(int(screen.getmaxyx()[0] / 2) - 1, 0, "Enter file to analyze: ")
                     screen.refresh()
                     targetWin.refresh()
                     editbox = Textbox(targetWin)
