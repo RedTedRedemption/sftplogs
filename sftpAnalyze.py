@@ -171,6 +171,7 @@ def main(screen):
             targetWin.move(0, 0)
     else:
         targetfile = sys.argv[1]
+        getfromsystem = False
 
     screen.clear()
     if not getfromsystem:
