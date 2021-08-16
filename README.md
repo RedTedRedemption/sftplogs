@@ -18,3 +18,9 @@ You can also specify a file on the command line.
 Syntax is:
 `./sftpAnalyze.py <filename>` or
 `./sftpAnalyze.py`
+
+#Concepts Demonstrated
++Efficient text processing
++Regular Expressions
++Text-Based GUI design
++UX design
