@@ -94,6 +94,15 @@ def duplist(list):
         temparray.append(i)
     return temparray
 
+def checkscreensize(_screen):
+    if _screen.getmaxyx()[0] < 5 or _screen.getmaxyx()[1] < 120:
+        _screen.clear()
+        _screen.addstr("Screen is too small. Please expand to 120 x 5")
+        _screen.refresh()
+    while _screen.getmaxyx()[0] < 5 or _screen.getmaxyx()[1] < 120:
+        _screen.refresh()
+        
+
 def surround(outside, *strings):
     tout = outside
     for string in strings:
@@ -133,13 +142,14 @@ def main(screen):
     getfromsystem = True
     
     
+    
     curses.curs_set(0)
 
     screen.clear()
     if len(sys.argv) < 2:
-        targetWin = curses.newwin(1, screen.getmaxyx()[1], int(screen.getmaxyx()[0] / 2), 0)
-
         while needtarget:
+            checkscreensize(screen)
+            targetWin = curses.newwin(1, screen.getmaxyx()[1], int(screen.getmaxyx()[0] / 2), 0)
             targetWin.addstr("Get Logs from System", (curses.A_REVERSE if getfromsystem else curses.A_NORMAL))
             targetWin.addstr("     ")
             targetWin.addstr("Enter logfile", (curses.A_REVERSE if not getfromsystem else curses.A_NORMAL))
@@ -168,6 +178,7 @@ def main(screen):
             else:
                 pass
             targetWin.clear()
+            screen.clear()
             targetWin.move(0, 0)
     else:
         targetfile = sys.argv[1]
@@ -264,7 +275,7 @@ def main(screen):
 
     screen.addstr(7, 0, "Analysis Complete")
     screen.addstr(8, 0, "PRESS ENTER TO CONTINUE")
-    screen.getstr()
+    while screen.getkey() != "\n": pass
 
     screen.nodelay(1)
     screen.clear()
@@ -287,6 +298,7 @@ def main(screen):
     curses.curs_set(0)
     
     def searchmode(__entries):
+        checkscreensize(screen)
         curses.curs_set(2)
         rightpanel.clear()
         rightpanel.refresh()
@@ -315,6 +327,7 @@ def main(screen):
         curses.curs_set(0)
 
     while True:
+        checkscreensize(screen)
         if screensize != screen.getmaxyx():
             screensize = screen.getmaxyx()
             leftpanel = curses.newwin(screen.getmaxyx()[0], 56, 0, 0)
