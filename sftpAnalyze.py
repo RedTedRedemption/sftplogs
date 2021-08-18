@@ -188,6 +188,8 @@ def main(screen):
     if not getfromsystem:
         screen.addstr("analyzing file: " + targetfile)
     screen.refresh()
+    
+    logs = []
 
     if not getfromsystem:
         try:
@@ -201,13 +203,22 @@ def main(screen):
             screen.getkey()
             exit()
     else:
-        screen.addstr("getting logs from system. This may take some time...")
         screen.refresh()
         jctl = subprocess.Popen(('journalctl', '-r'), stdout=subprocess.PIPE)
-        logs = str(subprocess.check_output(('grep', 'sftp-server'), stdin=jctl.stdout)).strip("\\b").strip("'").split("\\n")
+        while True:
+            line = str(jctl.stdout.readline()).strip("\\b").strip("'").strip("\\n")
+            if line == '':
+                break
+            if 'sftp-server' in line:
+                logs.append(line)
+                screen.addstr(0, 0, concat("getting logs from system. This may take some time...", "found", len(logs), "candidate logs"))
+                screen.addstr(5, 0, line)
+                screen.refresh()
+        jctl.stdout.close()
         screen.addstr(concat("found", len(logs), "logs"))
         screen.refresh()
-        
+    screen.clear()
+    screen.addstr(0, 0, concat("getting logs from system. This may take some time...", "found", len(logs), "candidate logs"))
     workingline = 0
     for line in logs:
         workingline += 1
