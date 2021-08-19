@@ -397,7 +397,7 @@ def main(screen):
                         menuindex += 1
                         leftpanel.clear()
                         rightpanel.clear()
-                elif char == "KEY_RIGHT":
+                elif char == "KEY_RIGHT" or char == '\n':
                     menuindex = 0
                     viewmode = SESSION_MODE
                     leftpanel.clear()
@@ -470,7 +470,7 @@ def main(screen):
                         viewmode = SESSION_MODE
                         leftpanel.clear()
                         rightpanel.clear()
-                elif char == "KEY_RIGHT":
+                elif char == "KEY_RIGHT" or char == '\n':
                     viewmode = ENTRY_MODE
                 elif char.lower() == 'q':
                     exit()
