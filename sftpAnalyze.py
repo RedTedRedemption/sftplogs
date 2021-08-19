@@ -101,13 +101,28 @@ def checkscreensize(_screen):
         _screen.refresh()
     while _screen.getmaxyx()[0] < 5 or _screen.getmaxyx()[1] < 120:
         _screen.refresh()
-        
 
 def surround(outside, *strings):
     tout = outside
     for string in strings:
         tout = tout + string
     return tout + outside
+
+def readlog(process, _screen):
+    found = 0
+    while True:
+        line = str(process.stdout.readline()).strip("\\b").strip("'").strip("\\n")
+        if line == '':
+            return
+        if 'sftp-server[' in line:
+            found += 1
+            _screen.clear()
+            _screen.addstr(0, 0, concat("getting logs from system. This may take some time...", "found", found, "candidate logs"))
+            _screen.addstr(5, 0, line)
+            _screen.refresh()
+            yield line
+            
+    
 
 def interpret(entry):
     if type(entry) == type(str()):
@@ -188,6 +203,9 @@ def main(screen):
     if not getfromsystem:
         screen.addstr("analyzing file: " + targetfile)
     screen.refresh()
+    
+    logs = []
+    workingline = 0
 
     if not getfromsystem:
         try:
@@ -200,21 +218,26 @@ def main(screen):
             screen.addstr(concat("error loading file:"), err) #TODO - make more graceful
             screen.getkey()
             exit()
+        for line in logs:
+            workingline += 1
+            if "sftp-server[" in line:
+                entries.append(Entry(line))
+            screen.addstr(1, 0, concat("processing log entries...", workingline, "/", len(logs), "     found", len(entries), "sftp entries"))
+            screen.refresh()
     else:
-        screen.addstr("getting logs from system. This may take some time...")
         screen.refresh()
         jctl = subprocess.Popen(('journalctl', '-r'), stdout=subprocess.PIPE)
-        logs = str(subprocess.check_output(('grep', 'sftp-server'), stdin=jctl.stdout)).strip("\\b").strip("'").split("\\n")
+        for line in readlog(jctl, screen):
+            workingline +=1
+            entries.append(Entry(line))
+            screen.addstr(1, 0, concat("processing log entries...", workingline, "/", workingline, "     found", len(entries), "sftp entries"))
+            screen.refresh()
+        jctl.stdout.close()
         screen.addstr(concat("found", len(logs), "logs"))
         screen.refresh()
-        
-    workingline = 0
-    for line in logs:
-        workingline += 1
-        if "sftp-server[" in line:
-            entries.append(Entry(line))
-        screen.addstr(1, 0, concat("processing log entries...", workingline, "/", len(logs), "     found", len(entries), "sftp entries"))
-        screen.refresh()
+        screen.clear()
+        screen.addstr(0, 0, concat("getting logs from system. This may take some time...done!"))
+    
 
 
     datesplitted = entries[0].timestamp.split(" ")
@@ -233,8 +256,8 @@ def main(screen):
     screen.addstr("\nanalyzing valid entries")
     screen.refresh()
     for entry in entries:
-        workingline = workingline + 1
-        screen.addstr(3, 0, concat("analyzing line: ", workingline, "/", len(logs), "   ", "users detected: ", len(users), "    ", "sessions:", len(sessions)))
+        workingline += 1
+        screen.addstr(3, 0, concat("analyzing line: ", workingline, "/", len(entries), "   ", "users detected: ", len(users), "    ", "sessions:", len(sessions)))
         screen.refresh()
         if entry.username not in usernames:
             if entry.username != "notalogin":
@@ -374,7 +397,7 @@ def main(screen):
                         menuindex += 1
                         leftpanel.clear()
                         rightpanel.clear()
-                elif char == "KEY_RIGHT":
+                elif char == "KEY_RIGHT" or char == '\n':
                     menuindex = 0
                     viewmode = SESSION_MODE
                     leftpanel.clear()
@@ -447,7 +470,7 @@ def main(screen):
                         viewmode = SESSION_MODE
                         leftpanel.clear()
                         rightpanel.clear()
-                elif char == "KEY_RIGHT":
+                elif char == "KEY_RIGHT" or char == '\n':
                     viewmode = ENTRY_MODE
                 elif char.lower() == 'q':
                     exit()
