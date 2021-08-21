@@ -97,7 +97,7 @@ def duplist(list):
 def checkscreensize(_screen):
     if _screen.getmaxyx()[0] < 5 or _screen.getmaxyx()[1] < 120:
         _screen.clear()
-        _screen.addstr("Screen is too small. Please expand to 120 x 5")
+        _screen.addstr(concat("Screen is too small.", '(', _screen.getmaxyx()[1], 'x', _screen.getmaxyx()[0], ')', "Please expand to 120 x 5"))
         _screen.refresh()
     while _screen.getmaxyx()[0] < 5 or _screen.getmaxyx()[1] < 120:
         _screen.refresh()
@@ -110,19 +110,25 @@ def surround(outside, *strings):
 
 def readlog(process, _screen):
     found = 0
+    loadingindex = 0
+    loadingicon = ['|', '/', '-', '|', '\\']
+    processed = 0
     while True:
+        processed += 1
         line = str(process.stdout.readline()).strip("\\b").strip("'").strip("\\n")
         if line == '':
             return
         if 'sftp-server[' in line:
+            if loadingindex >= len(loadingicon) - 1:
+                loadingindex = 0
+            else:
+                loadingindex += 1
             found += 1
             _screen.clear()
-            _screen.addstr(0, 0, concat("getting logs from system. This may take some time...", "found", found, "candidate logs"))
+            _screen.addstr(0, 0, concat("getting logs from system. This may take some time... found", found, "candidate logs in", processed, "logs", loadingicon[loadingindex]))
             _screen.addstr(5, 0, line)
             _screen.refresh()
             yield line
-            
-    
 
 def interpret(entry):
     if type(entry) == type(str()):
@@ -173,25 +179,31 @@ def main(screen):
             targetWin.refresh()
             char = screen.getkey()
             char = char
-            if char == "KEY_LEFT" or char == "KEY_RIGHT":
-                getfromsystem = not getfromsystem
+            if char == "KEY_LEFT":
+                getfromsystem = True
+            elif char == "KEY_RIGHT":
+                 getfromsystem = False
             elif char == "\n":
                 if not getfromsystem:
-                    curses.curs_set(1)
+                    logfile = None
                     screen.clear()
-                    targetWin.clear()
                     screen.addstr(int(screen.getmaxyx()[0] / 2) - 1, 0, "Enter file to analyze: ")
-                    screen.refresh()
-                    targetWin.refresh()
-                    editbox = Textbox(targetWin)
-                    editbox.edit()
-                    screen.refresh()
-                    targetWin.refresh()
-                    targetfile = editbox.gather().strip()
-                    targetWin.clear()
+                    while logfile == None:
+                        curses.curs_set(1)
+                        targetWin.clear()
+                        screen.refresh()
+                        targetWin.refresh()
+                        editbox = Textbox(targetWin)
+                        editbox.edit()
+                        screen.refresh()
+                        targetWin.refresh()
+                        targetfile = editbox.gather().strip()
+                        try:
+                            logfile = open(targetfile, "r")
+                        except IOError:
+                            screen.addstr(int(screen.getmaxyx()[0] / 2) - 1, 0, "Error loading file. Please try again: ")                      
+                        targetWin.clear()
                 needtarget = False
-            else:
-                pass
             targetWin.clear()
             screen.clear()
             targetWin.move(0, 0)
@@ -208,16 +220,7 @@ def main(screen):
     workingline = 0
 
     if not getfromsystem:
-        try:
-            logfile = open(targetfile, "r")
-            logfile = logfile.read()
-            logs = logfile.split("\n")
-        except IOError as err:
-            print(targetfile)
-            screen.clear()
-            screen.addstr(concat("error loading file:"), err) #TODO - make more graceful
-            screen.getkey()
-            exit()
+        logs = logfile.read().split("\n")
         for line in logs:
             workingline += 1
             if "sftp-server[" in line:
@@ -321,6 +324,7 @@ def main(screen):
     curses.curs_set(0)
     
     def searchmode(__entries):
+        #TODO - what if searchterm is blank?
         checkscreensize(screen)
         curses.curs_set(2)
         rightpanel.clear()
@@ -337,15 +341,23 @@ def main(screen):
         for __entry in __entries:
             if searchregex.search(__entry.unparsed) != None:
                 results.append(__entry)
-        for entry in results:
-            try:
-                rightpanel.addstr(__entry.unparsed + '\n')
-            except curses.error:
-                pass
+        if len(results) == 0:
+            rightpanel.addstr("NO RESULTS MATCH " + searchterm)
+        else:
+            for result in results:
+                try:
+                    rightpanel.addstr(result.unparsed + '\n')
+                except curses.error:
+                    pass
+            searchwin.clear()
+            searchwin.addstr(concat(searchterm, " - found", len(results), "results"))
+            searchwin.refresh()
+        #TODO - how to tell user to press any key to continue?
+        #TODO - make results window larger and easier to read, highlight matches in results with A_REVERSE
         searchhintwin.clear()
         rightpanel.refresh()
-        searchbox.edit()
-        searchbox.gather()
+        rightpanel.getkey()
+        rightpanel.clear()
         del searchbox
         curses.curs_set(0)
 
