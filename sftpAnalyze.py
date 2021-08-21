@@ -183,6 +183,8 @@ def main(screen):
                 getfromsystem = True
             elif char == "KEY_RIGHT":
                  getfromsystem = False
+            elif char.lower() == 'q':
+                exit()
             elif char == "\n":
                 if not getfromsystem:
                     logfile = None
@@ -208,7 +210,29 @@ def main(screen):
             screen.clear()
             targetWin.move(0, 0)
     else:
-        targetfile = sys.argv[1]
+        try:
+            targetfile = sys.argv[1]
+            logfile = open(targetfile, "r")
+        except IOError:
+            logfile = None
+            screen.clear()
+            screen.addstr(int(screen.getmaxyx()[0] / 2) - 1, 0, "Error loading file. Please try again: ")
+            while logfile == None:
+                targetWin = curses.newwin(1, screen.getmaxyx()[1], int(screen.getmaxyx()[0] / 2), 0)
+                curses.curs_set(1)
+                targetWin.clear()
+                screen.refresh()
+                targetWin.refresh()
+                editbox = Textbox(targetWin)
+                editbox.edit()
+                screen.refresh()
+                targetWin.refresh()
+                targetfile = editbox.gather().strip()
+                try:
+                    logfile = open(targetfile, "r")
+                except IOError:
+                    screen.addstr(int(screen.getmaxyx()[0] / 2) - 1, 0, "Error loading file. Please try again: ")                      
+                targetWin.clear()
         getfromsystem = False
 
     screen.clear()
@@ -350,7 +374,7 @@ def main(screen):
                 except curses.error:
                     pass
             searchwin.clear()
-            searchwin.addstr(concat(searchterm, " - found", len(results), "results"))
+            searchwin.addstr(concat(searchterm, " - found", len(results), "results | press any key to exit search mode"))
             searchwin.refresh()
         #TODO - how to tell user to press any key to continue?
         #TODO - make results window larger and easier to read, highlight matches in results with A_REVERSE
