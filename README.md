@@ -13,17 +13,21 @@ Please note: this program is designed to work on Linux. While there is a curses 
 To create logfiles that this program can read, you will need to enable logging in `/etc/ssh/sshd_config` by changing `Subsystem   sftp    /usr/lib/openssh/sftp-server` to read
 `Subsystem   sftp    /usr/lib/openssh/sftp-server -l INFO`. Please note that sftp activity can be read by normal users using `journalctl` when this setting is activated. If you care about normal users not reading others' sftp activity this may create a security concern.
 
-Simply download sftpAnalyze.py and run it or run `git clone https://github.com/RedTedRedemption/sftplogs`. The necessary libraries should be built into Python 3 by default on Linux/BSD.
+To use the program, download sftpAnalyze.py and run it, or run `git clone https://github.com/RedTedRedemption/sftplogs` to clone the whole repo. The necessary libraries should be built into Python 3 by default on Linux/BSD.
 
-If a file is not specified it will ask you to enter the name of one.
+If a file is not specified it will ask you to enter a filename to analyze.
 You can also specify a file on the command line.
 
 Syntax is:
 `./sftpAnalyze.py <filename>` or
 `./sftpAnalyze.py`
 
+# Updating
+run `git pull` to update the program. The Main branch should remain stable.
+
 # Concepts Demonstrated
 + Efficient text processing
 + Regular Expressions
 + Text-Based GUI design
++ Iterators
 + UX design
