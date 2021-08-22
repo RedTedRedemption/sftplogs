@@ -134,7 +134,7 @@ def interpret(entry):
     if type(entry) == type(str()):
         return entry
     if entry.action == ACTION_LOGIN:
-        return concat(entry.timestamp, "-", "User", entry.username, "logged in")
+        return concat(entry.timestamp, "-", "User", "'" + entry.username + "'", "logged in")
     elif entry.action == ACTION_LOGOUT:
         return concat(entry.timestamp, '-', "User logged out")
     elif entry.action == ACTION_OPENDIR:
@@ -403,6 +403,7 @@ def main(screen):
         searchwin.bkgd(' ', curses.color_pair(1) | curses.A_BOLD | curses.A_REVERSE)
         
         if viewmode == USER_MODE:
+            seluser = users[menuindex]
             leftpanel.addstr(0, 0, concat("Users:","(" + str(len(users)) + ")"), curses.A_REVERSE)
             rightpanel.addstr(0, 0, concat("Sessions: ", "(" + str(len(users[menuindex].sessions)) + " sessions)"), curses.A_REVERSE)
             for i in range(screen.getmaxyx()[0] - 1):
@@ -410,11 +411,11 @@ def main(screen):
             lineindex = 1
             for user in users:
                 lineindex += 1
-                leftpanel.addstr(lineindex, 2, user.username)
+                leftpanel.addstr(lineindex, 2, user.username, (curses.A_REVERSE if user == seluser else curses.A_NORMAL))
             leftpanel.addstr(menuindex + 2, 1, ">")
             
             lineindex = 1
-            seluser = users[menuindex]
+            
             for session in seluser.sessions:
                 lineindex += 1
                 try:
@@ -461,7 +462,7 @@ def main(screen):
             for session in seluser.sessions:
                 lineindex += 1
                 try:
-                    leftpanel.addstr(lineindex, 2, concat(session.entries[0].timestamp, "from", "[" + session.address + "]", "--- ID", session.id))
+                    leftpanel.addstr(lineindex, 2, concat(session.entries[0].timestamp, "from", "[" + session.address + "]", "--- ID", session.id), (curses.A_REVERSE if session.uuid == selsession.uuid else curses.A_NORMAL))
                     if session.uuid == selsession.uuid:
                         leftpanel.addstr(lineindex, 1, ">")
                 except curses.error:
