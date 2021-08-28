@@ -376,7 +376,6 @@ def main(screen):
             searchwin.clear()
             searchwin.addstr(concat(searchterm, " - found", len(results), "results | press any key to exit search mode"))
             searchwin.refresh()
-        #TODO - how to tell user to press any key to continue?
         #TODO - make results window larger and easier to read, highlight matches in results with A_REVERSE
         searchhintwin.clear()
         rightpanel.refresh()
