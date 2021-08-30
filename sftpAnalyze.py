@@ -408,13 +408,12 @@ def main(screen):
         curses.curs_set(0)
     
     def infomode(_session: Session):
-        pass #TODO - show info about the current session in the right panel
         rightpanel.clear()
         rightpanel.addstr(1, 3, concat("About session", _session.id), curses.A_BOLD)
         rightpanel.addstr(3, 3, concat("Initialized timestamp:", _session.entries[0].timestamp))
         rightpanel.addstr(4, 3, "Duration: TODO") #TODO
         rightpanel.addstr(5, 3, concat("Entries:", len(_session.entries)))
-        rightpanel.addstr(6, 3, concat("Origin IP:", "[" + extractIP.search(_session.entries[0].unparsed).group(1) + "]"))
+        rightpanel.addstr(6, 3, concat("Origin IP:", "[" + _session.address + "]"))
         #TODO - consider GEOIP info dump here
 
         uploaded = 0
