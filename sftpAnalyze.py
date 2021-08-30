@@ -7,6 +7,7 @@ from curses.textpad import Textbox, rectangle
 USER_MODE = 0
 SESSION_MODE = 1
 ENTRY_MODE = 3
+
 ACTION_LOGIN = 0
 ACTION_READ = 1
 ACTION_WRITE = 2
@@ -16,6 +17,10 @@ ACTION_LOGOUT = 5
 ACTION_OPEN = 6
 ACTION_CLOSE = 7
 ACTION_DELETE = 8
+ACTION_NOSUCHFILE = 9
+ACTION_PERMISSIONDENIED = 10
+ACTION_CHOWN = 11
+ACTION_CHMOD = 12
 
 ACTION_OPEN_PATH = 1
 ACTION_OPEN_FLAGS = 2
@@ -27,9 +32,14 @@ ACTION_CLOSE_BYTESWRITTEN = 3
 
 extractIP = re.compile("from \[(.*?)]")
 extractPath = re.compile("\"(.*?)\"")
+
 closeParse = re.compile("close \"(.*?)\" bytes read (.*?).written (.*?)$")
 deleteParse = re.compile("remove name \"(.*?)\"")
 openParse = re.compile("open \"(.*?)\" flags (.*?) mode (.*?)$")
+nosuchfileParse = re.compile("sent status No such file")
+permsisiondeniedParse = re.compile("sent status Permission denied")
+chownParse = re.compile('set "(.*?)" owner (\d*?) group (\d*?)$')
+
 extractTransferred = re.compile("Read (\d*?) bytes \| Wrote (\d*?) bytes")
 
 
@@ -58,6 +68,12 @@ class Entry:
                 self.action = ACTION_DELETE
             elif openParse.search(self.unparsed) != None:
                 self.action = ACTION_OPEN
+            elif nosuchfileParse.search(self.unparsed) != None:
+                self.action = ACTION_NOSUCHFILE
+            elif permsisiondeniedParse.search(self.unparsed) != None:
+                self.action = ACTION_PERMISSIONDENIED
+            elif chownParse.search(self.unparsed) != None:
+                self.action = ACTION_CHOWN
             else:
                 self.action = ACTION_READ
 
@@ -152,6 +168,13 @@ def interpret(entry):
     elif entry.action == ACTION_OPEN:
         match = openParse.search(entry.unparsed)
         return concat(entry.timestamp, '-', 'Opened file', surround('"', match.group(ACTION_OPEN_PATH)), "with flags", match.group(ACTION_OPEN_FLAGS), 'mode', match.group(ACTION_OPEN_MODE))
+    elif entry.action == ACTION_NOSUCHFILE:
+        return concat(entry.timestamp, '-', 'User tried to access a file that does not exist')
+    elif entry.action == ACTION_PERMISSIONDENIED:
+        return concat(entry.timestamp, '-', "Sent status 'Permission Denied' (likely for previous entry)")
+    elif entry.action == ACTION_CHOWN:
+        match = chownParse.search(entry.unparsed)
+        return concat(entry.timestamp, '-', "User changed file ownership and/or group for file", surround('"', match.group(1)), "- new User:", match.group(2), "| Group:", match.group(3))
     else:
         return entry.unparsed #catch any unimplemented cases and print the raw entry
 
@@ -163,7 +186,6 @@ def main(screen):
     targetfile = None
     needtarget = True
     getfromsystem = True
-    
     
     
     curses.curs_set(0)
@@ -397,7 +419,6 @@ def main(screen):
 
         uploaded = 0
         downloaded = 0
-
         for _entry in _session.entries:
             _extracted = extractTransferred.search(interpret(_entry))
             if _extracted != None:
@@ -410,6 +431,7 @@ def main(screen):
         rightpanel.addstr(10, 3, "PRESS ANY KEY TO RETURN", curses.A_BOLD)
         rightpanel.refresh()
         rightpanel.getkey()
+        rightpanel.clear()
 
     while True:
         checkscreensize(screen)
@@ -478,7 +500,7 @@ def main(screen):
                 right_scrollpoint = 0
             selsession = seluser.sessions[menuindex]
             leftpanel.addstr(0, 0, concat("Sessions for user", seluser.username + ":", "(" + str(len(seluser.sessions)) + " sessions)"), curses.A_REVERSE)
-            rightpanel.addstr(0, 0, concat(len(selsession.entries), "entries in session", selsession.id), curses.A_REVERSE)
+            rightpanel.addstr(0, 0, concat(len(selsession.entries), "entries in session", selsession.id, "--- Press 'i' for more info"), curses.A_REVERSE)
             for i in range(screen.getmaxyx()[0] - 1):
                 leftpanel.addstr(i, leftpanel.getmaxyx()[1] - 1, "|")
                 if viewmode == ENTRY_MODE:
