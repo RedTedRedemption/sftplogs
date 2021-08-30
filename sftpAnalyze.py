@@ -7,6 +7,7 @@ from curses.textpad import Textbox, rectangle
 USER_MODE = 0
 SESSION_MODE = 1
 ENTRY_MODE = 3
+
 ACTION_LOGIN = 0
 ACTION_READ = 1
 ACTION_WRITE = 2
@@ -16,6 +17,10 @@ ACTION_LOGOUT = 5
 ACTION_OPEN = 6
 ACTION_CLOSE = 7
 ACTION_DELETE = 8
+ACTION_NOSUCHFILE = 9
+ACTION_PERMISSIONDENIED = 10
+ACTION_CHOWN = 11
+ACTION_CHMOD = 12
 
 ACTION_OPEN_PATH = 1
 ACTION_OPEN_FLAGS = 2
@@ -27,9 +32,16 @@ ACTION_CLOSE_BYTESWRITTEN = 3
 
 extractIP = re.compile("from \[(.*?)]")
 extractPath = re.compile("\"(.*?)\"")
+
 closeParse = re.compile("close \"(.*?)\" bytes read (.*?).written (.*?)$")
 deleteParse = re.compile("remove name \"(.*?)\"")
 openParse = re.compile("open \"(.*?)\" flags (.*?) mode (.*?)$")
+nosuchfileParse = re.compile("sent status No such file")
+permsisiondeniedParse = re.compile("sent status Permission denied")
+chownParse = re.compile('set "(.*?)" owner (\d*?) group (\d*?)$')
+
+extractTransferred = re.compile("Read (\d*?) bytes \| Wrote (\d*?) bytes")
+
 
 class Entry:
     def __init__(self, unparsed):
@@ -56,6 +68,12 @@ class Entry:
                 self.action = ACTION_DELETE
             elif openParse.search(self.unparsed) != None:
                 self.action = ACTION_OPEN
+            elif nosuchfileParse.search(self.unparsed) != None:
+                self.action = ACTION_NOSUCHFILE
+            elif permsisiondeniedParse.search(self.unparsed) != None:
+                self.action = ACTION_PERMISSIONDENIED
+            elif chownParse.search(self.unparsed) != None:
+                self.action = ACTION_CHOWN
             else:
                 self.action = ACTION_READ
 
@@ -71,9 +89,9 @@ class Session:
         Session.uuid += 1
         self.id = id
         self.entries = []
-        self.address = ''
-        self.username = ''
-        self.user = ''
+        self.address: str
+        self.username: str
+        self.user: str
 
 def concat(*args):
     tout = str(args[0])
@@ -150,6 +168,13 @@ def interpret(entry):
     elif entry.action == ACTION_OPEN:
         match = openParse.search(entry.unparsed)
         return concat(entry.timestamp, '-', 'Opened file', surround('"', match.group(ACTION_OPEN_PATH)), "with flags", match.group(ACTION_OPEN_FLAGS), 'mode', match.group(ACTION_OPEN_MODE))
+    elif entry.action == ACTION_NOSUCHFILE:
+        return concat(entry.timestamp, '-', 'User tried to access a file that does not exist')
+    elif entry.action == ACTION_PERMISSIONDENIED:
+        return concat(entry.timestamp, '-', "Sent status 'Permission Denied' (likely for previous entry)")
+    elif entry.action == ACTION_CHOWN:
+        match = chownParse.search(entry.unparsed)
+        return concat(entry.timestamp, '-', "User changed file ownership and/or group for file", surround('"', match.group(1)), "- new User:", match.group(2), "| Group:", match.group(3))
     else:
         return entry.unparsed #catch any unimplemented cases and print the raw entry
 
@@ -161,7 +186,6 @@ def main(screen):
     targetfile = None
     needtarget = True
     getfromsystem = True
-    
     
     
     curses.curs_set(0)
@@ -343,7 +367,6 @@ def main(screen):
 
     menuindex = 0
     viewmode = USER_MODE
-    left_scrollpoint = 0
 
     curses.curs_set(0)
     
@@ -376,7 +399,6 @@ def main(screen):
             searchwin.clear()
             searchwin.addstr(concat(searchterm, " - found", len(results), "results | press any key to exit search mode"))
             searchwin.refresh()
-        #TODO - how to tell user to press any key to continue?
         #TODO - make results window larger and easier to read, highlight matches in results with A_REVERSE
         searchhintwin.clear()
         rightpanel.refresh()
@@ -384,6 +406,32 @@ def main(screen):
         rightpanel.clear()
         del searchbox
         curses.curs_set(0)
+    
+    def infomode(_session: Session):
+        pass #TODO - show info about the current session in the right panel
+        rightpanel.clear()
+        rightpanel.addstr(1, 3, concat("About session", _session.id), curses.A_BOLD)
+        rightpanel.addstr(3, 3, concat("Initialized timestamp:", _session.entries[0].timestamp))
+        rightpanel.addstr(4, 3, "Duration: TODO") #TODO
+        rightpanel.addstr(5, 3, concat("Entries:", len(_session.entries)))
+        rightpanel.addstr(6, 3, concat("Origin IP:", "[" + extractIP.search(_session.entries[0].unparsed).group(1) + "]"))
+        #TODO - consider GEOIP info dump here
+
+        uploaded = 0
+        downloaded = 0
+        for _entry in _session.entries:
+            _extracted = extractTransferred.search(interpret(_entry))
+            if _extracted != None:
+                downloaded += int(_extracted.group(1))
+                uploaded += int(_extracted.group(2))
+            
+        rightpanel.addstr(7, 3, concat("Uploaded:", uploaded, "bytes"))
+        rightpanel.addstr(8, 3, concat("Downloaded:", downloaded, "bytes"))
+
+        rightpanel.addstr(10, 3, "PRESS ANY KEY TO RETURN", curses.A_BOLD)
+        rightpanel.refresh()
+        rightpanel.getkey()
+        rightpanel.clear()
 
     while True:
         checkscreensize(screen)
@@ -453,7 +501,7 @@ def main(screen):
                 right_scrollpoint = 0
             selsession = seluser.sessions[menuindex]
             leftpanel.addstr(0, 0, concat("Sessions for user", seluser.username + ":", "(" + str(len(seluser.sessions)) + " sessions)"), curses.A_REVERSE)
-            rightpanel.addstr(0, 0, concat(len(selsession.entries), "entries in session", selsession.id), curses.A_REVERSE)
+            rightpanel.addstr(0, 0, concat(len(selsession.entries), "entries in session", selsession.id, "--- Press 'i' for more info"), curses.A_REVERSE)
             for i in range(screen.getmaxyx()[0] - 1):
                 leftpanel.addstr(i, leftpanel.getmaxyx()[1] - 1, "|")
                 if viewmode == ENTRY_MODE:
@@ -515,6 +563,8 @@ def main(screen):
                     searchmode(_entries)
                 elif char == "?":
                     searchmode(entries)
+                elif char.lower() == 'i':
+                    infomode(selsession)
             except curses.error:
                 pass
 
