@@ -30,6 +30,8 @@ extractPath = re.compile("\"(.*?)\"")
 closeParse = re.compile("close \"(.*?)\" bytes read (.*?).written (.*?)$")
 deleteParse = re.compile("remove name \"(.*?)\"")
 openParse = re.compile("open \"(.*?)\" flags (.*?) mode (.*?)$")
+extractTransferred = re.compile("Read (\d*?) bytes \| Wrote (\d*?) bytes")
+
 
 class Entry:
     def __init__(self, unparsed):
@@ -71,9 +73,9 @@ class Session:
         Session.uuid += 1
         self.id = id
         self.entries = []
-        self.address = ''
-        self.username = ''
-        self.user = ''
+        self.address: str
+        self.username: str
+        self.user: str
 
 def concat(*args):
     tout = str(args[0])
@@ -343,7 +345,6 @@ def main(screen):
 
     menuindex = 0
     viewmode = USER_MODE
-    left_scrollpoint = 0
 
     curses.curs_set(0)
     
@@ -383,6 +384,32 @@ def main(screen):
         rightpanel.clear()
         del searchbox
         curses.curs_set(0)
+    
+    def infomode(_session: Session):
+        pass #TODO - show info about the current session in the right panel
+        rightpanel.clear()
+        rightpanel.addstr(1, 3, concat("About session", _session.id), curses.A_BOLD)
+        rightpanel.addstr(3, 3, concat("Initialized timestamp:", _session.entries[0].timestamp))
+        rightpanel.addstr(4, 3, "Duration: TODO") #TODO
+        rightpanel.addstr(5, 3, concat("Entries:", len(_session.entries)))
+        rightpanel.addstr(6, 3, concat("Origin IP:", "[" + extractIP.search(_session.entries[0].unparsed).group(1) + "]"))
+        #TODO - consider GEOIP info dump here
+
+        uploaded = 0
+        downloaded = 0
+
+        for _entry in _session.entries:
+            _extracted = extractTransferred.search(interpret(_entry))
+            if _extracted != None:
+                downloaded += int(_extracted.group(1))
+                uploaded += int(_extracted.group(2))
+            
+        rightpanel.addstr(7, 3, concat("Uploaded:", uploaded, "bytes"))
+        rightpanel.addstr(8, 3, concat("Downloaded:", downloaded, "bytes"))
+
+        rightpanel.addstr(10, 3, "PRESS ANY KEY TO RETURN", curses.A_BOLD)
+        rightpanel.refresh()
+        rightpanel.getkey()
 
     while True:
         checkscreensize(screen)
@@ -513,6 +540,8 @@ def main(screen):
                     searchmode(_entries)
                 elif char == "?":
                     searchmode(entries)
+                elif char.lower() == 'i':
+                    infomode(selsession)
             except curses.error:
                 pass
 
