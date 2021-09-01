@@ -6,6 +6,7 @@ from curses.textpad import Textbox, rectangle
 
 USER_MODE = 0
 SESSION_MODE = 1
+INFO_MODE = 2
 ENTRY_MODE = 3
 
 ACTION_LOGIN = 0
@@ -178,6 +179,17 @@ def interpret(entry):
     else:
         return entry.unparsed #catch any unimplemented cases and print the raw entry
 
+def progressbar(_screen, progressList, progress):
+    _screen.addstr(15, 0, "[")
+    completeBar = (progress / len(progressList)) * (_screen.getmaxyx()[1] - 2)
+    incompleteBar = (_screen.getmaxyx()[1] - 2) - completeBar
+    for i in range(int(completeBar)):
+        _screen.addstr(" ", curses.A_REVERSE)
+    for i in range(int(incompleteBar)):
+        _screen.addstr(" ")
+    _screen.addstr("]")
+    _screen.addstr(15, 1, concat(int((progress / len(progressList)) * 100), "%"))
+
 def main(screen):
     users = []
     usernames = []
@@ -274,6 +286,7 @@ def main(screen):
             if "sftp-server[" in line:
                 entries.append(Entry(line))
             screen.addstr(1, 0, concat("processing log entries...", workingline, "/", len(logs), "     found", len(entries), "sftp entries"))
+            progressbar(screen, logs, workingline)
             screen.refresh()
     else:
         screen.refresh()
@@ -304,7 +317,7 @@ def main(screen):
     #TODO - why does this cause doubling ^ ?
 
     workingline = 0
-    screen.addstr("\nanalyzing valid entries")
+    screen.addstr(1, 0, "analyzing valid entries")
     screen.refresh()
     for entry in entries:
         workingline += 1
@@ -323,6 +336,8 @@ def main(screen):
             for user in users:
                 if user.username == entry.username:
                     user.sessions.append(tempsession)
+        
+        progressbar(screen, entries, workingline)
 
     workingline = 0
     for entry in entries:
@@ -332,6 +347,7 @@ def main(screen):
         for session in sessions:
             if entry.sessionID == session.id:
                 session.entries.append(entry)
+        progressbar(screen, entries, workingline)
     workingline = 0
     for user in users:
         workingline += 1
@@ -346,6 +362,7 @@ def main(screen):
                             notinsessions = False
                     if notinsessions:
                         user.sessions.append(session)
+        progressbar(screen, users, workingline)
 
     screen.addstr(7, 0, "Analysis Complete")
     screen.addstr(8, 0, "PRESS ENTER TO CONTINUE")
