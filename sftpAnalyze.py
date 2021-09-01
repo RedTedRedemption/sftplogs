@@ -45,7 +45,7 @@ extractTransferred = re.compile("Read (\d*?) bytes \| Wrote (\d*?) bytes")
 
 
 class Entry:
-    def __init__(self, unparsed):
+    def __init__(self, unparsed:str):
         self.unparsed = unparsed
         self.sessionID = unparsed.split("[")[1].split("]")[0]
         if "session opened for local user" in unparsed:
@@ -79,13 +79,13 @@ class Entry:
                 self.action = ACTION_READ
 
 class User:
-    def __init__(self, username):
+    def __init__(self, username:str):
         self.sessions = []
         self.username = username
 
 class Session:
     uuid = 0
-    def __init__(self, id):
+    def __init__(self, id:int):
         self.uuid = Session.uuid
         Session.uuid += 1
         self.id = id
@@ -94,26 +94,26 @@ class Session:
         self.username: str
         self.user: str
 
-def concat(*args):
+def concat(*args) -> str:
     tout = str(args[0])
     for arg in args[1:]:
         tout = tout + " " + str(arg)
     return tout;
 
-def isaNumber(string):
+def isaNumber(string:str) -> bool:
     try:
         int(string)
     except:
         return False
     return True
 
-def duplist(list):
+def duplist(list:list) -> list:
     temparray = []
     for i in list:
         temparray.append(i)
     return temparray
 
-def checkscreensize(_screen):
+def checkscreensize(_screen) -> None:
     if _screen.getmaxyx()[0] < 5 or _screen.getmaxyx()[1] < 120:
         _screen.clear()
         _screen.addstr(concat("Screen is too small.", '(', _screen.getmaxyx()[1], 'x', _screen.getmaxyx()[0], ')', "Please expand to 120 x 5"))
@@ -121,13 +121,13 @@ def checkscreensize(_screen):
     while _screen.getmaxyx()[0] < 5 or _screen.getmaxyx()[1] < 120:
         _screen.refresh()
 
-def surround(outside, *strings):
+def surround(outside:str, *strings) -> str:
     tout = outside
     for string in strings:
         tout = tout + string
     return tout + outside
 
-def readlog(process, _screen):
+def readlog(process:subprocess.Popen, _screen):
     found = 0
     loadingindex = 0
     loadingicon = ['|', '/', '-', '|', '\\']
@@ -149,7 +149,7 @@ def readlog(process, _screen):
             _screen.refresh()
             yield line
 
-def interpret(entry):
+def interpret(entry:Entry) -> str:
     if type(entry) == type(str()):
         return entry
     if entry.action == ACTION_LOGIN:
@@ -179,7 +179,7 @@ def interpret(entry):
     else:
         return entry.unparsed #catch any unimplemented cases and print the raw entry
 
-def progressbar(_screen, progressList, progress):
+def progressbar(_screen, progressList:list, progress:int):
     _screen.addstr(15, 0, "[")
     completeBar = (progress / len(progressList)) * (_screen.getmaxyx()[1] - 2)
     incompleteBar = (_screen.getmaxyx()[1] - 2) - completeBar
@@ -190,7 +190,7 @@ def progressbar(_screen, progressList, progress):
     _screen.addstr("]")
     _screen.addstr(15, 1, concat(int((progress / len(progressList)) * 100), "%"))
 
-def main(screen):
+def main(screen:curses.newwin):
     users = []
     usernames = []
     sessions = []
@@ -391,7 +391,7 @@ def main(screen):
 
     curses.curs_set(0)
     
-    def searchmode(__entries):
+    def searchmode(__entries:list[Entry]) -> None:
         #TODO - what if searchterm is blank?
         checkscreensize(screen)
         curses.curs_set(2)
