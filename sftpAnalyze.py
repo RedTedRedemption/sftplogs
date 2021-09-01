@@ -366,7 +366,11 @@ def main(screen):
 
     screen.addstr(7, 0, "Analysis Complete")
     screen.addstr(8, 0, "PRESS ENTER TO CONTINUE")
-    while screen.getkey() != "\n": pass
+    char = ""
+    while char != "\n":
+        char = screen.getkey()
+        if char.lower() == "q":
+            exit()
 
     screen.nodelay(1)
     screen.clear()
