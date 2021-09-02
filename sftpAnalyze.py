@@ -281,6 +281,8 @@ def main(screen:curses.newwin):
 
     if not getfromsystem:
         logs = logfile.read().split("\n")
+        logfile.close()
+        del logfile
         for line in logs:
             workingline += 1
             if "sftp-server[" in line:
