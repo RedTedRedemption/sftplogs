@@ -393,7 +393,7 @@ def main(screen:curses.newwin):
 
     curses.curs_set(0)
     
-    def searchmode(__entries:list[Entry]) -> None:
+    def searchmode(__entries) -> None:
         #TODO - what if searchterm is blank?
         checkscreensize(screen)
         curses.curs_set(2)
