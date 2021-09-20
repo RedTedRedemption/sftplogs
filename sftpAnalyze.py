@@ -119,7 +119,10 @@ def checkscreensize(_screen) -> None:
         _screen.addstr(concat("Screen is too small.", '(', _screen.getmaxyx()[1], 'x', _screen.getmaxyx()[0], ')', "Please expand to 120 x 5"))
         _screen.refresh()
     while _screen.getmaxyx()[0] < 5 or _screen.getmaxyx()[1] < 120:
+        if _screen.getkey().lower() == 'q':
+            exit()
         _screen.refresh()
+    _screen.clear()
 
 def surround(outside:str, *strings) -> str:
     tout = outside
